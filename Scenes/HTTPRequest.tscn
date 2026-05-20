@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://3vwrt8keodqd"]
+
+[ext_resource type="Script" uid="uid://retjcjexmmtg" path="res://Scripts/HTTPRequest.gd" id="1_k6727"]
+
+[node name="VOICEVOXClient" type="HTTPRequest" unique_id=280735175]
+script = ExtResource("1_k6727")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=192718639]
+
+[connection signal="request_completed" from="." to="." method="_on_request_completed"]
