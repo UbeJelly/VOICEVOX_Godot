@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://3vwrt8keodqd"]
 
-[ext_resource type="Script" uid="uid://retjcjexmmtg" path="res://Scripts/HTTPRequest.gd" id="1_k6727"]
+[ext_resource type="Script" uid="uid://retjcjexmmtg" path="res://Scripts/VOICEVOXClient.gd" id="1_ncafk"]
 
 [node name="VOICEVOXClient" type="HTTPRequest" unique_id=280735175]
-script = ExtResource("1_k6727")
+script = ExtResource("1_ncafk")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=192718639]
 
