@@ -4,6 +4,8 @@
 
 [node name="VOICEVOXClient" type="HTTPRequest" unique_id=280735175]
 script = ExtResource("1_ncafk")
+print_result = true
+print_response = true
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=192718639]
 

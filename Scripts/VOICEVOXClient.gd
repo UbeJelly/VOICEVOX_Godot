@@ -25,14 +25,17 @@ const headers: Dictionary = { "header": "Content-Type: application/json", "accep
 
 ## INFO: Toggle the visibility of callback status or requested data on terminal.
 @export_category("Console Texts")
-@export var print_stat: bool = true		## Show or hide the status of functions.
-@export var print_data: bool = false	## Show or hide the requested data.
+@export var print_stat: bool = true			## Show or hide the status of functions.
+@export var print_data: bool = false		## Show or hide the requested data.
+@export var print_result: bool = false		## Show or hide the status of functions.
+@export var print_response: bool = false	## Show or hide the status of functions.
 
 var url: String = "http://{host}:{port}".format(listens)
 var query: int = 0
 
 @onready var speakers := Speakers.new()
 @onready var audio_query := AudioQuery.new()
+@onready var http_validation_error := HTTPValidationError.new()
 @onready var audio_stream_player := $AudioStreamPlayer
 
 
@@ -122,33 +125,45 @@ func post_synthesis(audio_query_data: Dictionary) -> void:
 			print("❌ post_synthesis() failed.")
 
 
-func _on_request_completed(_result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var data: Variant = null
 
-	match query:
-		Get.SPEAKERS:
-			data = _parse_JSON(body)
-			speakers.set_data(data)
+	if print_result == true:
+		if result == RESULT_SUCCESS:
+			print("✓ HTTP request result code: %s" % _get_result(result))
 
-		Get.AUDIO_QUERY:
-			data = _parse_JSON(body)
-			audio_query.set_data(
-				data["accent_phrases"],
-				intonation_scale,
-				data["kana"],
-				data["outputSamplingRate"],
-				data["outputStereo"],
-				data["pauseLength"],
-				data["pauseLengthScale"],
-				pitch_scale,
-				post_phoneme_length,
-				pre_phoneme_length,
-				speed_scale,
-				volume_scale
-			)
+	if print_response == true:
+		if response_code == HTTPClient.RESPONSE_OK:
+			print("✓ HTTP request response code: %s\n" % _get_response(response_code))
+			
+			match query:
+				Get.SPEAKERS:
+					data = _parse_JSON(body)
+					speakers.set_data(data)
 
-		Get.SYNTHESIS:
-			_play_WAV_file(body)
+				Get.AUDIO_QUERY:
+					data = _parse_JSON(body)
+					audio_query.set_data(
+						data["accent_phrases"],
+						intonation_scale,
+						data["kana"],
+						data["outputSamplingRate"],
+						data["outputStereo"],
+						data["pauseLength"],
+						data["pauseLengthScale"],
+						pitch_scale,
+						post_phoneme_length,
+						pre_phoneme_length,
+						speed_scale,
+						volume_scale
+					)
+
+				Get.SYNTHESIS:
+					_play_WAV_file(body)
+		else:
+			print("❌ Validation Error! HTTP request response code: %s\n" % _get_response(response_code))
+			data = _parse_JSON(body)
+			http_validation_error.set_data(data)
 
 
 ## Opens the docs to the default browser if listening to the host and port.
@@ -199,3 +214,94 @@ func _parse_JSON(body: PackedByteArray) -> Variant:
 		if print_data == true:
 			print("❌ _parse_JSON() error: ", json.get_error_message(), " in ", string, " at line ", json.get_error_line(), ".")
 		return {}
+
+
+## Returns a readable result code in.
+## [param id] is the result code/id.
+func _get_result(id: int) -> String:
+	var status: String = ""
+	match id:
+		0: status = "RESULT_SUCCESS"
+		1: status = "RESULT_CHUNKED_BODY_SIZE_MISMATCH"
+		2: status = "RESULT_CANT_CONNECT"
+		3: status = "RESULT_CANT_RESOLVE"
+		4: status = "RESULT_CONNECTION_ERROR"
+		5: status = "RESULT_TLS_HANDSHAKE_ERROR"
+		6: status = "RESULT_NO_RESPONSE"
+		7: status = "RESULT_BODY_SIZE_LIMIT_EXCEEDED"
+		8: status = "RESULT_BODY_DECOMPRESS_FAILED"
+		9: status = "RESULT_REQUEST_FAILED"
+		10: status = "RESULT_DOWNLOAD_FILE_CANT_OPEN"
+		11: status = "RESULT_DOWNLOAD_FILE_WRITE_ERROR"
+		12: status = "RESULT_REDIRECT_LIMIT_REACHED"
+		13: status = "RESULT_TIMEOUT"
+	return status
+
+
+## Returns a readable response code.
+## [param id] is the response code/id.
+func _get_response(id: int) -> String:
+	var status: String = ""
+	match id:
+		100: status = "RESPONSE_CONTINUE"
+		101: status = "RESPONSE_SWITCHING_PROTOCOLS"
+		102: status = "RESPONSE_PROCESSING"
+		200: status = "RESPONSE_OK"
+		201: status = "RESPONSE_CREATED"
+		202: status = "RESPONSE_ACCEPTED"
+		203: status = "RESPONSE_NON_AUTHORITATIVE_INFORMATION"
+		204: status = "RESPONSE_NO_CONTENT"
+		205: status = "RESPONSE_RESET_CONTENT"
+		206: status = "RESPONSE_PARTIAL_CONTENT"
+		207: status = "RESPONSE_MULTI_STATUS"
+		208: status = "RESPONSE_ALREADY_REPORTED"
+		226: status = "RESPONSE_IM_USED"
+		300: status = "RESPONSE_MULTIPLE_CHOICES"
+		301: status = "RESPONSE_MOVED_PERMANENTLY"
+		302: status = "RESPONSE_FOUND"
+		303: status = "RESPONSE_SEE_OTHER"
+		304: status = "RESPONSE_NOT_MODIFIED"
+		305: status = "RESPONSE_USE_PROXY"
+		306: status = "RESPONSE_SWITCH_PROXY"
+		307: status = "RESPONSE_TEMPORARY_REDIRECT"
+		308: status = "RESPONSE_PERMANENT_REDIRECT"
+		400: status = "RESPONSE_BAD_REQUEST"
+		401: status = "RESPONSE_UNAUTHORIZED"
+		402: status = "RESPONSE_PAYMENT_REQUIRED"
+		403: status = "RESPONSE_FORBIDDEN"
+		404: status = "RESPONSE_NOT_FOUND"
+		405: status = "RESPONSE_METHOD_NOT_ALLOWED"
+		406: status = "RESPONSE_NOT_ACCEPTABLE"
+		407: status = "RESPONSE_PROXY_AUTHENTICATION_REQUIRED"
+		408: status = "RESPONSE_REQUEST_TIMEOUT"
+		409: status = "RESPONSE_CONFLICT"
+		410: status = "RESPONSE_GONE"
+		411: status = "RESPONSE_LENGTH_REQUIRED"
+		412: status = "RESPONSE_PRECONDITION_FAILED"
+		413: status = "RESPONSE_REQUEST_ENTITY_TOO_LARGE"
+		414: status = "RESPONSE_REQUEST_URI_TOO_LONG"
+		415: status = "RESPONSE_UNSUPPORTED_MEDIA_TYPE"
+		416: status = "RESPONSE_REQUESTED_RANGE_NOT_SATISFIABLE"
+		417: status = "RESPONSE_EXPECTATION_FAILED"
+		418: status = "RESPONSE_IM_A_TEAPOT"
+		421: status = "RESPONSE_MISDIRECTED_REQUEST"
+		422: status = "RESPONSE_UNPROCESSABLE_ENTITY"
+		423: status = "RESPONSE_LOCKED"
+		424: status = "RESPONSE_FAILED_DEPENDENCY"
+		426: status = "RESPONSE_UPGRADE_REQUIRED"
+		428: status = "RESPONSE_PRECONDITION_REQUIRED"
+		429: status = "RESPONSE_TOO_MANY_REQUESTS"
+		431: status = "RESPONSE_REQUEST_HEADER_FIELDS_TOO_LARGE"
+		451: status = "RESPONSE_UNAVAILABLE_FOR_LEGAL_REASONS"
+		500: status = "RESPONSE_INTERNAL_SERVER_ERROR"
+		501: status = "RESPONSE_NOT_IMPLEMENTED"
+		502: status = "RESPONSE_BAD_GATEWAY"
+		503: status = "RESPONSE_SERVICE_UNAVAILABLE"
+		504: status = "RESPONSE_GATEWAY_TIMEOUT"
+		505: status = "RESPONSE_HTTP_VERSION_NOT_SUPPORTED"
+		506: status = "RESPONSE_VARIANT_ALSO_NEGOTIATES"
+		507: status = "RESPONSE_INSUFFICIENT_STORAGE"
+		508: status = "RESPONSE_LOOP_DETECTED"
+		510: status = "RESPONSE_NOT_EXTENDED"
+		511: status = "RESPONSE_NETWORK_AUTH_REQUIRED"
+	return status
