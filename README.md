@@ -12,7 +12,7 @@ I will make further changes just as I did with my other project [PokeDot](https:
 | [Structure](#structure)           | The structure of the entire project.                              |
 | [Methods](#methods)               | The functions available from `VOICEVOXClient` main scene.         |
 | [Main functions](#main-functions) | The methods that abstract their purpose, e.g. *text-to-speech*.   |
-| [API calls](#api-calls)           | Requests data and stores them to an object, e.g. Speakers.        |
+| [API calls](#api-calls)           | Requests data and stores them to an object, e.g. `Speakers`.      |
 | [Features](#features)             | Some stuff to make the project interesting or easier to maintain. |
 | [License](#license)               | The license of this project.                                      |
 
@@ -81,7 +81,7 @@ res:// (root)
 
 # Main scene
 VOICEVOXClient            - the main HTTPRequest node that handles all request at http://127.0.0.1:50021.
-  └─ AudioStreamPlayer    - plays the audio stream from a PackedByteArray, e.g. after speech synthesis().
+  └─ AudioStreamPlayer    - plays the audio stream from a PackedByteArray, e.g. after a post_synthesis().
 ```
 
 # Methods

@@ -26,9 +26,9 @@ const headers: Dictionary = { "header": "Content-Type: application/json", "accep
 ## INFO: Toggle the visibility of callback status or requested data on terminal.
 @export_category("Console Texts")
 @export var print_stat: bool = true			## Show or hide the status of functions.
-@export var print_data: bool = false		## Show or hide the requested data.
-@export var print_result: bool = false		## Show or hide the status of functions.
-@export var print_response: bool = false	## Show or hide the status of functions.
+@export var print_data: bool = true			## Show or hide the requested data.
+@export var print_result: bool = true		## Show or hide the result of requests.
+@export var print_response: bool = true		## Show or hide the response of requests.
 
 var url: String = "http://{host}:{port}".format(listens)
 var query: int = 0
@@ -131,39 +131,43 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 	if print_result == true:
 		if result == RESULT_SUCCESS:
 			print("✓ HTTP request result code: %s" % _get_result(result))
-
-	if print_response == true:
-		if response_code == HTTPClient.RESPONSE_OK:
-			print("✓ HTTP request response code: %s\n" % _get_response(response_code))
-			
-			match query:
-				Get.SPEAKERS:
-					data = _parse_JSON(body)
-					speakers.set_data(data)
-
-				Get.AUDIO_QUERY:
-					data = _parse_JSON(body)
-					audio_query.set_data(
-						data["accent_phrases"],
-						intonation_scale,
-						data["kana"],
-						data["outputSamplingRate"],
-						data["outputStereo"],
-						data["pauseLength"],
-						data["pauseLengthScale"],
-						pitch_scale,
-						post_phoneme_length,
-						pre_phoneme_length,
-						speed_scale,
-						volume_scale
-					)
-
-				Get.SYNTHESIS:
-					_play_WAV_file(body)
 		else:
+			print("❌ HTTP request failed. Error: %s" % _get_result(result))
+	
+	if response_code == HTTPClient.RESPONSE_OK:
+		if print_response == true:
+			print("✓ HTTP request response code: %s\n" % _get_response(response_code))
+		
+		match query:
+			Get.SPEAKERS:
+				data = _parse_JSON(body)
+				speakers.set_data(data)
+
+			Get.AUDIO_QUERY:
+				data = _parse_JSON(body)
+				audio_query.set_data(
+					data["accent_phrases"],
+					intonation_scale,
+					data["kana"],
+					data["outputSamplingRate"],
+					data["outputStereo"],
+					data["pauseLength"],
+					data["pauseLengthScale"],
+					pitch_scale,
+					post_phoneme_length,
+					pre_phoneme_length,
+					speed_scale,
+					volume_scale
+				)
+
+			Get.SYNTHESIS:
+				_play_WAV_file(body)
+
+	else:
+		if print_response == true:
 			print("❌ Validation Error! HTTP request response code: %s\n" % _get_response(response_code))
-			data = _parse_JSON(body)
-			http_validation_error.set_data(data)
+		data = _parse_JSON(body)
+		http_validation_error.set_data(data)
 
 
 ## Opens the docs to the default browser if listening to the host and port.
@@ -204,7 +208,7 @@ func _parse_JSON(body: PackedByteArray) -> Variant:
 		var data_got: Variant = json.data
 		if typeof(data_got) == TYPE_ARRAY or typeof(data_got) == TYPE_DICTIONARY:
 			if print_data == true:
-				print("\n"+JSON.stringify(data_got, "\t")+"\n")
+				print(JSON.stringify(data_got, "\t")+"\n")
 			return data_got
 		else:
 			if print_data == true:
