@@ -5,6 +5,10 @@ enum Get {
 	AUDIO_QUERY_FROM_PRESET,
 	SING_FRAME_AUDIO_QUERY,
 	ACCENT_PHRASES,
+	MORA_DATA,
+	MORA_LENGTH,
+	MORA_PITCH,
+	SING_FRAME_F0,
 	SPEAKERS,
 	SYNTHESIS,
 	SCORE
@@ -42,6 +46,10 @@ var query: int = 0
 @onready var audio_query_from_preset := AudioQueryFromPreset.new()
 @onready var frame_audio_query := FrameAudioQuery.new()
 @onready var accent_phrases := AccentPhrases.new()
+@onready var mora := Mora.new()
+@onready var mora_length := MoraLength.new()
+@onready var mora_pitch := MoraPitch.new()
+@onready var sing_frame_f0 := SingFrameF0.new()
 @onready var synthesis := Synthesis.new()
 @onready var speakers := Speakers.new()
 @onready var http_validation_error := HTTPValidationError.new()
@@ -53,10 +61,9 @@ var query: int = 0
 func _ready() -> void:
 	set_speech_settings(3, 1.15, 0.05, 1.45, 2.0, 0.1, 0.1)
 	text_to_speech("Hello world! This is voice box gee doh. It's nice to meet you!")
-	
+
 	## TODO: Make and use both post_add_preset() and get_presets() first to see if it works.
 	## Then proceed on using post_audio_query_from_preset() via text_to_speech_from_preset()
-	
 	#text_to_speech_from_preset("Hello world! I'm one of the presets!", 12)
 
 
@@ -177,6 +184,72 @@ func post_accent_phrases(text: String, speaker_id: int) -> void:
 			print("❌ post_accent_phrases() failed.")
 
 
+## Get phoneme length and pitch from accent phrases.
+## [param speaker_id] is the id of the speaker that will talk.
+func post_mora_data(speaker_id: int) -> void:
+	query = Get.MORA_DATA
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/mora_data?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(accent_phrases.data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_mora_data() run successfully.")
+		else:
+			print("❌ post_mora_data() failed.")
+
+
+## Get phoneme lengths from accent phrases.
+## [param speaker_id] is the id of the speaker that will talk.
+func post_mora_length(speaker_id: int) -> void:
+	query = Get.MORA_LENGTH
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/mora_length?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(accent_phrases.data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_mora_length() run successfully.")
+		else:
+			print("❌ post_mora_length() failed.")
+
+
+## Get phoneme pitch from accent phrases.
+## [param speaker_id] is the id of the speaker that will talk.
+func post_mora_pitch(speaker_id: int) -> void:
+	query = Get.MORA_PITCH
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/mora_pitch?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(accent_phrases.data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_mora_pitch() run successfully.")
+		else:
+			print("❌ post_mora_pitch() failed.")
+
+
+## Get the basic frequency for each frame from queries for sheet music and singing voice synthesis.
+## [param speaker_id] is the id of the speaker that will talk.
+func post_sing_frame_f0(speaker_id: int) -> void:
+	query = Get.SING_FRAME_F0
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/sing_frame_f0?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(
+		{ "score": score.data, "frame_audio_query": frame_audio_query.data }
+	)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_sing_frame_f0() run successfully.")
+		else:
+			print("❌ post_sing_frame_f0() failed.")
+
+
 ## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
 ## [param audio_query_data] is the data to synthesize speech with.
 func post_synthesis(audio_query_data: Dictionary) -> void:
@@ -246,6 +319,22 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.ACCENT_PHRASES:
 				data = _parse_JSON(body)
 				accent_phrases.set_data(data)
+
+			Get.MORA_DATA:
+				data = _parse_JSON(body)
+				mora.set_data(data)
+
+			Get.MORA_LENGTH:
+				data = _parse_JSON(body)
+				mora_length.set_data(data)
+
+			Get.MORA_PITCH:
+				data = _parse_JSON(body)
+				mora_pitch.set_data(data)
+
+			Get.SING_FRAME_F0:
+				data = _parse_JSON(body)
+				sing_frame_f0.set_data(data)
 
 			Get.AUDIO_QUERY_FROM_PRESET:
 				data._parse_JSON(body)
