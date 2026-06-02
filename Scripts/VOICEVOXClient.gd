@@ -1,9 +1,13 @@
 class_name VOICEVOXClient extends HTTPRequest
 
 enum Get {
-	SPEAKERS,
 	AUDIO_QUERY,
-	SYNTHESIS
+	AUDIO_QUERY_FROM_PRESET,
+	SING_FRAME_AUDIO_QUERY,
+	ACCENT_PHRASES,
+	SPEAKERS,
+	SYNTHESIS,
+	SCORE
 }
 
 const listens: Dictionary = { "host": "127.0.0.1", "port": "50021" }
@@ -33,24 +37,50 @@ const headers: Dictionary = { "header": "Content-Type: application/json", "accep
 var url: String = "http://{host}:{port}".format(listens)
 var query: int = 0
 
-@onready var speakers := Speakers.new()
+## INFO: Schemas - the data containers for POST and GET requests
 @onready var audio_query := AudioQuery.new()
+@onready var audio_query_from_preset := AudioQueryFromPreset.new()
+@onready var frame_audio_query := FrameAudioQuery.new()
+@onready var accent_phrases := AccentPhrases.new()
+@onready var synthesis := Synthesis.new()
+@onready var speakers := Speakers.new()
 @onready var http_validation_error := HTTPValidationError.new()
+@onready var score := Score.new()
+
 @onready var audio_stream_player := $AudioStreamPlayer
 
 
 func _ready() -> void:
 	set_speech_settings(3, 1.15, 0.05, 1.45, 2.0, 0.1, 0.1)
 	text_to_speech("Hello world! This is voice box gee doh. It's nice to meet you!")
+	
+	## TODO: Make and use both post_add_preset() and get_presets() first to see if it works.
+	## Then proceed on using post_audio_query_from_preset() via text_to_speech_from_preset()
+	
+	#text_to_speech_from_preset("Hello world! I'm one of the presets!", 12)
 
 
 ## The Text-to-Speech function. It posts an [param audio_query] and synthesizes its data with [param synthesis()] function.
 ## [param text] is the text to synthesize to speech.
 func text_to_speech(text: String) -> void:
-	post_audio_query(text)
+	post_audio_query(text, speaker)
 	await request_completed
 	if not audio_query.get_data().is_empty():
 		post_synthesis(audio_query.get_data())
+		await request_completed
+	else:
+		if print_stat == true:
+			print("❌ text_to_speech() failed.")
+
+
+## The Text-to-Speech function. It posts an [param audio_query] and synthesizes its data with [param synthesis()] function.
+## [param text] is the text to synthesize to speech.
+## [param preset_id] is the id of a preset to use.
+func text_to_speech_from_preset(text: String, preset_id: int) -> void:
+	post_audio_query_from_preset(text, preset_id)
+	await request_completed
+	if not audio_query_from_preset.get_data().is_empty():
+		post_synthesis(audio_query_from_preset.get_data())
 		await request_completed
 	else:
 		if print_stat == true:
@@ -82,24 +112,12 @@ func set_audio_play_settings(volume: float = 1.0) -> void:
 	stream_volume = volume
 
 
-## Requests the available speakers. Receives an Array after request_completed.
-func get_speakers() -> void:
-	query = Get.SPEAKERS
-	var endpoint: String = url+"/speakers"
-
-	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
-	if print_stat == true:
-		if error == OK:
-			print("✓ get_speakers() run successfully.")
-		else:
-			print("❌ get_speakers() failed.")
-
-
 ## Set the initial values for speech synthesis query. Receives a Dictionary after request_completed.
 ## [param text] is the text to be spoken by a speech synthesis query.
-func post_audio_query(text: String) -> void:
+## [param speaker_id] is the id of the speaker that will talk.
+func post_audio_query(text: String, speaker_id: int) -> void:
 	query = Get.AUDIO_QUERY
-	var params: Dictionary = { "text": text.uri_encode(), "speaker": speaker }
+	var params: Dictionary = { "text": text.uri_encode(), "speaker": speaker_id }
 	var endpoint: String = url+"/audio_query?text={text}&speaker={speaker}".format(params)
 
 	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
@@ -108,6 +126,55 @@ func post_audio_query(text: String) -> void:
 			print("✓ post_audio_query() run successfully.")
 		else:
 			print("❌ post_audio_query() failed.")
+
+
+## Create a speech synthesis query using presets. Presets must not be empty. Use [param post_add_preset()] to add a preset, while [param get_presets()] to get an array of presets.
+## [param text] is the text to be spoken by a speech synthesis query.
+## [param preset_id] is the id of a preset to use.
+func post_audio_query_from_preset(text: String, preset_id: int) -> void:
+	query = Get.AUDIO_QUERY_FROM_PRESET
+	var params: Dictionary = { "text": text.uri_encode(), "preset": preset_id }
+	var endpoint: String = url+"/audio_query_from_preset?text={text}&preset_id={preset}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_audio_query_from_preset() run successfully.")
+		else:
+			print("❌ post_audio_query_from_preset() failed.")
+
+
+## Obtains the initial values ​​for the query used for singing voice synthesis.
+## [param speaker_id] is the id of the speaker that will talk.
+## A [param Score] data is used on request body. 
+func post_sing_frame_audio_query(speaker_id: int) -> void:
+	query = Get.SING_FRAME_AUDIO_QUERY
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/sing_frame_audio_query?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(score.data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_sing_frame_audio_query() run successfully.")
+		else:
+			print("❌ post_sing_frame_audio_query() failed.")
+
+
+## Extracts the accents of phrases from the text.
+## [param text] is the text to be spoken by a speech synthesis query.
+## [param speaker_id] is the id of the speaker that will talk.
+func post_accent_phrases(text: String, speaker_id: int) -> void:
+	query = Get.ACCENT_PHRASES
+	var params: Dictionary = { "text": text.uri_encode(), "speaker": speaker_id }
+	var endpoint: String = url+"/accent_phrases?text={text}&speaker={speaker}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_accent_phrases() run successfully.")
+		else:
+			print("❌ post_accent_phrases() failed.")
 
 
 ## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
@@ -125,6 +192,19 @@ func post_synthesis(audio_query_data: Dictionary) -> void:
 			print("❌ post_synthesis() failed.")
 
 
+## Requests the available speakers. Receives an Array after request_completed.
+func get_speakers() -> void:
+	query = Get.SPEAKERS
+	var endpoint: String = url+"/speakers"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_speakers() run successfully.")
+		else:
+			print("❌ get_speakers() failed.")
+
+
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var data: Variant = null
 
@@ -137,7 +217,7 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 	if response_code == HTTPClient.RESPONSE_OK:
 		if print_response == true:
 			print("✓ HTTP request response code: %s\n" % _get_response(response_code))
-		
+
 		match query:
 			Get.SPEAKERS:
 				data = _parse_JSON(body)
@@ -163,11 +243,57 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.SYNTHESIS:
 				_play_WAV_file(body)
 
+			Get.ACCENT_PHRASES:
+				data = _parse_JSON(body)
+				accent_phrases.set_data(data)
+
+			Get.AUDIO_QUERY_FROM_PRESET:
+				data._parse_JSON(body)
+				audio_query_from_preset.set_data(
+					data["accent_phrases"],
+					data["speedScale"],
+					data["pitchScale"],
+					data["intonationScale"],
+					data["volumeScale"],
+					data["prePhonemeLength"],
+					data["postPhonemeLength"],
+					data["pauseLength"],
+					data["pauseLengthScale"],
+					data["outputSamplingRate"],
+					data["outputStereo"],
+					data["kana"]
+				)
+
+			Get.SING_FRAME_AUDIO_QUERY:
+				data._parse_JSON(body)
+				frame_audio_query.set_data(
+					data["f0"],
+					data["volume"],
+					data["phonemes"],
+					data["volumeScale"],
+					data["outputSamplingRate"],
+					data["outputStereo"]
+				)
+
+			Get.SCORE:
+				data._parse_JSON(body)
+				score.set_data(data)
+
 	else:
 		if print_response == true:
 			print("❌ Validation Error! HTTP request response code: %s\n" % _get_response(response_code))
 		data = _parse_JSON(body)
 		http_validation_error.set_data(data)
+
+
+## Opens the portal to the default browser if listening to the host and port.
+func open_portal() -> void:
+	var error: int = OS.shell_open(url)
+	if print_stat == true:
+		if error == OK:
+			print("Opened portal on browser.\n")
+		else:
+			print("Cannot open portal. Check host and port.\n")
 
 
 ## Opens the docs to the default browser if listening to the host and port.
