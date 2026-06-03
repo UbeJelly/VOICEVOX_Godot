@@ -209,7 +209,7 @@ func post_accent_phrases(text: String, speaker_id: int) -> void:
 			print("❌ post_accent_phrases() failed.")
 
 
-## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Cen be cancelled.
+## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Can be cancelled.
 ## [param audio_query_data] is the data to synthesize speech with.
 func post_cancellable_synthesis(audio_query_data: Dictionary) -> void:
 	query = Get.CANCELLABLE_SYNTHESIS

@@ -12,15 +12,13 @@ This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/vo
 | [Methods](#methods)                    | The functions available from `VOICEVOXClient` main scene.         |
 | [Main functions](#main-functions)      | The methods that abstract their purpose, e.g. *text-to-speech*.   |
 | [API calls](#api-calls)                | Requests data and stores them to an object, e.g. `Speakers`.      |
+| [Other functions](#other-functions)    | The other available functions to use.                             |
 | [Features](#features)                  | Some stuff to make the project interesting or easier to maintain. |
 | [License](#license)                    | The license of this project.                                      |
 
-
-Standalone setup
-
 ## Usage
 > [!NOTE]  
-> This would only work if VOICEVOX Engine runs locally at `http://127.0.0.1:50021`.  
+> This would only work if VOICEVOX Engine runs locally at http://127.0.0.1:50021.  
 > You can download [VOICEVOX releases](https://voicevox.hiroshiba.jp/) or clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) and run any of them.
 
 This is the main TTS function, the string input is handled by `post_audio_query()` and `post_synthesis()` functions to produce an audio.
@@ -75,6 +73,7 @@ Output:
 					"vowel": "a",
 					"vowel_length": 0.0868542268872261
 		// ...
+		}]}]
 	"intonationScale": 1.0,
 	"kana": "ハ'ロオ/ワ'アルド、ディ'ス/イ'ズ/ボ'イス/ボ'ッ_クス/ギ'イ/ド'オ、イ'ッツ、ナ'イス/ツ'ウ/ミ'イト/ユ'ウ",
 	// ...
@@ -159,14 +158,26 @@ These are the main functions for the most basic text-to-speech purposes.
   - `audio_query_data` - is the data to synthesize speech with.
 
 While here are the rest of functions for more configurations.
+- `post_accent_phrases(text: String, speaker_id: int)` - extracts the accents of phrases from the text.
 - `post_audio_query_from_preset(text: String, preset_id: int)` - creates a speech synthesis query using presets. `Presets` must not be empty. Use `post_add_preset()` to add a preset, while `get_presets()` to get an array of presets.
   - `preset_id` - is the id of a preset to use.
-- `post_sing_frame_audio_query(speaker_id: int)` - obtains the initial values ​​for the query used for singing voice synthesis.
-- `post_accent_phrases(text: String, speaker_id: int)` - extracts the accents of phrases from the text.
-- `post_mora_data(speaker_id: int)` - get phoneme length and pitch from accent phrases.
-- `post_mora_length(speaker_id: int)` - get phoneme lengths from accent phrases.
-- `post_mora_pitch(speaker_id: int)` - get phoneme pitch from accent phrases.
-- `post_sing_frame_f0(speaker_id: int)` - get the basic frequency for each frame from queries for sheet music and singing voice synthesis.
+- `post_cancellable_synthesis(audio_query_data: Dictionary)` - synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Can be cancelled.
+- `post_mora_data(speaker_id: int, accent_phrases_data: Array)` - get phoneme length and pitch from accent phrases.
+	- `accent_phrases_data` - is the returned Array from `AccentPhrases`.
+- `post_mora_length(speaker_id: int, accent_phrases_data: Array)` - get phoneme lengths from accent phrases.
+- `post_mora_pitch(speaker_id: int, accent_phrases_data: Array)` - get phoneme pitch from accent phrases.
+- `post_multi_synthesis(multi_audio_query_data: Array)` - synthesizes the data from multiple audio query. Receives a PackedByteArray after request_completed.
+	- `multi_audio_query_data` - is an Array of multiple AudioQuery to synthesize speech from.
+- `post_sing_frame_audio_query(speaker_id: int, score_data: Dictionary)` - obtains the initial values ​​for the query used for singing voice synthesis.
+	- `score_data` - is the returned data from `Score`.
+- `post_sing_frame_f0(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary)` - get the basic frequency for each frame from queries for sheet music and singing voice synthesis.
+	- `frame_audio_query_data` - is the returned data from `FrameAudioQuery`.
+- `post_sing_frame_volume(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary)` - get per-frame volume from queries for sheet music and vocal synthesis.
+
+## Other functions
+- `text_to_speech_from_preset(text: String, preset_id: int)` - same as `text_to_speech` but uses a defined preset instead.
+- `open_portal()` - opens the portal (http://127.0.0.1:50021) to the default browser if listening to the host and port.
+- `open_docs()` - opens the docs (http://127.0.0.1:50021/docs) to the default browser if listening to the host and port.
 
 ## Features
 These are the basic features included for feasibility and maintainability.  
