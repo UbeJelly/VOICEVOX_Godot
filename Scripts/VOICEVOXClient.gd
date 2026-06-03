@@ -1,17 +1,22 @@
 class_name VOICEVOXClient extends HTTPRequest
 
+#region Variables
+
 enum Get {
+	ACCENT_PHRASES,
 	AUDIO_QUERY,
 	AUDIO_QUERY_FROM_PRESET,
-	SING_FRAME_AUDIO_QUERY,
-	ACCENT_PHRASES,
+	CANCELLABLE_SYNTHESIS,
 	MORA_DATA,
 	MORA_LENGTH,
 	MORA_PITCH,
+	MULTI_SYNTHESIS,
+	SING_FRAME_AUDIO_QUERY,
 	SING_FRAME_F0,
+	SING_FRAME_VOLUME,
+	SCORE,
 	SPEAKERS,
 	SYNTHESIS,
-	SCORE
 }
 
 const listens: Dictionary = { "host": "127.0.0.1", "port": "50021" }
@@ -19,17 +24,18 @@ const headers: Dictionary = { "header": "Content-Type: application/json", "accep
 
 ## INFO: Speaker like who's talking, how fast they talk, how much pitch they have, etc.
 @export_category("VOICEVOX Speaker")
-@export_range(0, 999) var speaker: int = 3 											## The id of the Speaker.
-@export_range(0.5, 2.0, 0.05, "prefer_slider") var speed_scale: float = 1.0 		## The speed how fast the Speaker talks.
-@export_range(-0.15, 0.15, 0.01, "prefer_slider") var pitch_scale: float = 0.0 		## The perceived highness or lowness of a sound.
-@export_range(0.0, 2.0, 0.05, "prefer_slider") var intonation_scale: float = 1.0 	## The rise and fall of voice in speech.
-@export_range(0.0, 2.0, 0.05, "prefer_slider") var volume_scale: float = 2.0		## The perceived loudness or intensity of a sound.
-@export_range(0.0, 1.5, 0.01, "prefer_slider") var pre_phoneme_length: float = 0.1	## The silent duration before the audio (e.g., the 'k' in 'ka').
-@export_range(0.0, 1.5, 0.01, "prefer_slider") var post_phoneme_length: float = 0.1 ## The silent duration after the audio.
+@export_range(0, 999) var speaker: int = 3 												## The id of the Speaker.
+@export_range(0.5, 2.0, 0.05, "prefer_slider") var speed_scale: float = 1.0 			## The speed how fast the Speaker talks.
+@export_range(-0.15, 0.15, 0.01, "prefer_slider") var pitch_scale: float = 0.0 			## The perceived highness or lowness of a sound.
+@export_range(0.0, 2.0, 0.05, "prefer_slider") var intonation_scale: float = 1.0 		## The rise and fall of voice in speech.
+@export_range(0.0, 2.0, 0.05, "prefer_slider") var volume_scale: float = 2.0			## The perceived loudness or intensity of a sound.
+@export_range(0.0, 1.5, 0.01, "prefer_slider") var pre_phoneme_length: float = 0.1		## The silent duration before the audio (e.g., the 'k' in 'ka').
+@export_range(0.0, 1.5, 0.01, "prefer_slider") var post_phoneme_length: float = 0.1 	## The silent duration after the audio.
 
 ## INFO: Settings for the audio player. This affects the entire settings of the Speaker.
 @export_category("AudioStreamPlayer")
-@export_range(0.0, 1.0, 0.1, "prefer_slider") var stream_volume: float = 1.0		## The entire volume when the audio is played.
+@export_range(0.0, 1.0, 0.1, "prefer_slider") var stream_volume: float = 1.0			## The volume when the audio is played by AudioStreamPlayer.
+@export_range(16000.0, 48000.0, 1000.0) var stream_sample_rate: float = 24000.0			## The mix rate when the audio is played by AudioStreamPlayer.
 
 ## INFO: Toggle the visibility of callback status or requested data on terminal.
 @export_category("Console Texts")
@@ -42,21 +48,26 @@ var url: String = "http://{host}:{port}".format(listens)
 var query: int = 0
 
 ## INFO: Schemas - the data containers for POST and GET requests
+@onready var accent_phrases := AccentPhrases.new()
 @onready var audio_query := AudioQuery.new()
 @onready var audio_query_from_preset := AudioQueryFromPreset.new()
+@onready var cancellable_synthesis := CancellableSynthesis.new()
 @onready var frame_audio_query := FrameAudioQuery.new()
-@onready var accent_phrases := AccentPhrases.new()
+@onready var http_validation_error := HTTPValidationError.new()
 @onready var mora := Mora.new()
 @onready var mora_length := MoraLength.new()
 @onready var mora_pitch := MoraPitch.new()
-@onready var sing_frame_f0 := SingFrameF0.new()
-@onready var synthesis := Synthesis.new()
-@onready var speakers := Speakers.new()
-@onready var http_validation_error := HTTPValidationError.new()
+@onready var multi_synthesis := MultiSynthesis.new()
 @onready var score := Score.new()
+@onready var sing_frame_f0 := SingFrameF0.new()
+@onready var sing_frame_volume := SingFrameVolume.new()
+@onready var speakers := Speakers.new()
+@onready var synthesis := Synthesis.new()
 
+## INFO: Sub nodes
 @onready var audio_stream_player := $AudioStreamPlayer
 
+#endregion
 
 func _ready() -> void:
 	set_speech_settings(3, 1.15, 0.05, 1.45, 2.0, 0.1, 0.1)
@@ -66,7 +77,7 @@ func _ready() -> void:
 	## Then proceed on using post_audio_query_from_preset() via text_to_speech_from_preset()
 	#text_to_speech_from_preset("Hello world! I'm one of the presets!", 12)
 
-
+#region Main Client Functions
 ## The Text-to-Speech function. It posts an [param audio_query] and synthesizes its data with [param synthesis()] function.
 ## [param text] is the text to synthesize to speech.
 func text_to_speech(text: String) -> void:
@@ -91,7 +102,7 @@ func text_to_speech_from_preset(text: String, preset_id: int) -> void:
 		await request_completed
 	else:
 		if print_stat == true:
-			print("❌ text_to_speech() failed.")
+			print("❌ text_to_speech_from_preset() failed.")
 
 
 ## Modifies the settings of the Speaker. It affects how the synthesized speech is spoken.
@@ -117,6 +128,20 @@ func set_speech_settings(speaker_id: int = 3, speed: float = 1.0, pitch: float =
 ## [param volume] is the entire volume when the audio is played.
 func set_audio_play_settings(volume: float = 1.0) -> void:
 	stream_volume = volume
+#endregion
+
+#region Main VOICEVOX API Calls
+## Requests the available speakers. Receives an Array after request_completed.
+func get_speakers() -> void:
+	query = Get.SPEAKERS
+	var endpoint: String = url+"/speakers"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_speakers() run successfully.")
+		else:
+			print("❌ get_speakers() failed.")
 
 
 ## Set the initial values for speech synthesis query. Receives a Dictionary after request_completed.
@@ -135,6 +160,23 @@ func post_audio_query(text: String, speaker_id: int) -> void:
 			print("❌ post_audio_query() failed.")
 
 
+## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
+## [param audio_query_data] is the data to synthesize speech with.
+func post_synthesis(audio_query_data: Dictionary) -> void:
+	query = Get.SYNTHESIS
+	var params: Dictionary = { "speaker": speaker }
+	var endpoint: String = url+"/synthesis?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(audio_query_data)
+
+	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_synthesis() run successfully.")
+		else:
+			print("❌ post_synthesis() failed.")
+#endregion
+
+#region VOICEVOX API Calls
 ## Create a speech synthesis query using presets. Presets must not be empty. Use [param post_add_preset()] to add a preset, while [param get_presets()] to get an array of presets.
 ## [param text] is the text to be spoken by a speech synthesis query.
 ## [param preset_id] is the id of a preset to use.
@@ -149,23 +191,6 @@ func post_audio_query_from_preset(text: String, preset_id: int) -> void:
 			print("✓ post_audio_query_from_preset() run successfully.")
 		else:
 			print("❌ post_audio_query_from_preset() failed.")
-
-
-## Obtains the initial values ​​for the query used for singing voice synthesis.
-## [param speaker_id] is the id of the speaker that will talk.
-## A [param Score] data is used on request body. 
-func post_sing_frame_audio_query(speaker_id: int) -> void:
-	query = Get.SING_FRAME_AUDIO_QUERY
-	var params: Dictionary = { "speaker": speaker_id }
-	var endpoint: String = url+"/sing_frame_audio_query?speaker={speaker}".format(params)
-	var request_body: String = JSON.stringify(score.data)
-
-	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
-	if print_stat == true:
-		if error == OK:
-			print("✓ post_sing_frame_audio_query() run successfully.")
-		else:
-			print("❌ post_sing_frame_audio_query() failed.")
 
 
 ## Extracts the accents of phrases from the text.
@@ -184,13 +209,30 @@ func post_accent_phrases(text: String, speaker_id: int) -> void:
 			print("❌ post_accent_phrases() failed.")
 
 
+## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Cen be cancelled.
+## [param audio_query_data] is the data to synthesize speech with.
+func post_cancellable_synthesis(audio_query_data: Dictionary) -> void:
+	query = Get.CANCELLABLE_SYNTHESIS
+	var params: Dictionary = { "speaker": speaker }
+	var endpoint: String = url+"/cancellable_synthesis?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(audio_query_data)
+
+	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_cancellable_synthesis() run successfully.")
+		else:
+			print("❌ post_cancellable_synthesis() failed.")
+
+
 ## Get phoneme length and pitch from accent phrases.
 ## [param speaker_id] is the id of the speaker that will talk.
-func post_mora_data(speaker_id: int) -> void:
+## [param accent_phrases_data] is the returned Array from AccentPhrases.
+func post_mora_data(speaker_id: int, accent_phrases_data: Array) -> void:
 	query = Get.MORA_DATA
 	var params: Dictionary = { "speaker": speaker_id }
 	var endpoint: String = url+"/mora_data?speaker={speaker}".format(params)
-	var request_body: String = JSON.stringify(accent_phrases.data)
+	var request_body: String = JSON.stringify(accent_phrases_data)
 
 	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
 	if print_stat == true:
@@ -202,11 +244,12 @@ func post_mora_data(speaker_id: int) -> void:
 
 ## Get phoneme lengths from accent phrases.
 ## [param speaker_id] is the id of the speaker that will talk.
-func post_mora_length(speaker_id: int) -> void:
+## [param accent_phrases_data] is the returned Array from AccentPhrases.
+func post_mora_length(speaker_id: int, accent_phrases_data: Array) -> void:
 	query = Get.MORA_LENGTH
 	var params: Dictionary = { "speaker": speaker_id }
 	var endpoint: String = url+"/mora_length?speaker={speaker}".format(params)
-	var request_body: String = JSON.stringify(accent_phrases.data)
+	var request_body: String = JSON.stringify(accent_phrases_data)
 
 	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
 	if print_stat == true:
@@ -218,11 +261,12 @@ func post_mora_length(speaker_id: int) -> void:
 
 ## Get phoneme pitch from accent phrases.
 ## [param speaker_id] is the id of the speaker that will talk.
-func post_mora_pitch(speaker_id: int) -> void:
+## [param accent_phrases_data] is the returned Array from AccentPhrases.
+func post_mora_pitch(speaker_id: int, accent_phrases_data: Array) -> void:
 	query = Get.MORA_PITCH
 	var params: Dictionary = { "speaker": speaker_id }
 	var endpoint: String = url+"/mora_pitch?speaker={speaker}".format(params)
-	var request_body: String = JSON.stringify(accent_phrases.data)
+	var request_body: String = JSON.stringify(accent_phrases_data)
 
 	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
 	if print_stat == true:
@@ -232,14 +276,49 @@ func post_mora_pitch(speaker_id: int) -> void:
 			print("❌ post_mora_pitch() failed.")
 
 
+## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
+## [param multi_audio_query_data] is an Array of multiple AudioQuery to synthesize speech from.
+func post_multi_synthesis(multi_audio_query_data: Array) -> void:
+	query = Get.MULTI_SYNTHESIS
+	var params: Dictionary = { "speaker": speaker }
+	var endpoint: String = url+"/multi_synthesis?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(multi_audio_query_data)
+
+	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_multi_synthesis() run successfully.")
+		else:
+			print("❌ post_multi_synthesis() failed.")
+
+
+## Obtains the initial values ​​for the query used for singing voice synthesis.
+## [param speaker_id] is the id of the speaker that will talk.
+## [param score_data] is the returned data from Score.
+func post_sing_frame_audio_query(speaker_id: int, score_data: Dictionary) -> void:
+	query = Get.SING_FRAME_AUDIO_QUERY
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/sing_frame_audio_query?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(score_data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_sing_frame_audio_query() run successfully.")
+		else:
+			print("❌ post_sing_frame_audio_query() failed.")
+
+
 ## Get the basic frequency for each frame from queries for sheet music and singing voice synthesis.
 ## [param speaker_id] is the id of the speaker that will talk.
-func post_sing_frame_f0(speaker_id: int) -> void:
+## [param score_data] is the returned data from Score.
+## [param frame_audio_query_data] is the returned data from FrameAudioQuery.
+func post_sing_frame_f0(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary) -> void:
 	query = Get.SING_FRAME_F0
 	var params: Dictionary = { "speaker": speaker_id }
 	var endpoint: String = url+"/sing_frame_f0?speaker={speaker}".format(params)
 	var request_body: String = JSON.stringify(
-		{ "score": score.data, "frame_audio_query": frame_audio_query.data }
+		{ "score": score_data, "frame_audio_query": frame_audio_query_data }
 	)
 
 	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
@@ -250,33 +329,35 @@ func post_sing_frame_f0(speaker_id: int) -> void:
 			print("❌ post_sing_frame_f0() failed.")
 
 
-## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
-## [param audio_query_data] is the data to synthesize speech with.
-func post_synthesis(audio_query_data: Dictionary) -> void:
-	query = Get.SYNTHESIS
-	var params: Dictionary = { "speaker": speaker }
-	var endpoint: String = url+"/synthesis?speaker={speaker}".format(params)
+## Get per-frame volume from queries for sheet music and vocal synthesis
+## [param speaker_id] is the id of the speaker that will talk.
+## [param score_data] is the returned data from Score.
+## [param frame_audio_query_data] is the returned data from FrameAudioQuery.
+func post_sing_frame_volume(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary) -> void:
+	query = Get.SING_FRAME_VOLUME
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/sing_frame_volume?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(
+		{ "score": score_data, "frame_audio_query": frame_audio_query_data }
+	)
 
-	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, JSON.stringify(audio_query_data))
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
 	if print_stat == true:
 		if error == OK:
-			print("✓ post_synthesis() run successfully.")
+			print("✓ post_sing_frame_volume() run successfully.")
 		else:
-			print("❌ post_synthesis() failed.")
+			print("❌ post_sing_frame_volume() failed.")
 
 
-## Requests the available speakers. Receives an Array after request_completed.
-func get_speakers() -> void:
-	query = Get.SPEAKERS
-	var endpoint: String = url+"/speakers"
-
-	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+## Opens the portal to the default browser if listening to the host and port.
+func open_portal() -> void:
+	var error: int = OS.shell_open(url)
 	if print_stat == true:
 		if error == OK:
-			print("✓ get_speakers() run successfully.")
+			print("Opened portal on browser.\n")
 		else:
-			print("❌ get_speakers() failed.")
-
+			print("Cannot open portal. Check host and port.\n")
+#endregion
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var data: Variant = null
@@ -320,22 +401,6 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 				data = _parse_JSON(body)
 				accent_phrases.set_data(data)
 
-			Get.MORA_DATA:
-				data = _parse_JSON(body)
-				mora.set_data(data)
-
-			Get.MORA_LENGTH:
-				data = _parse_JSON(body)
-				mora_length.set_data(data)
-
-			Get.MORA_PITCH:
-				data = _parse_JSON(body)
-				mora_pitch.set_data(data)
-
-			Get.SING_FRAME_F0:
-				data = _parse_JSON(body)
-				sing_frame_f0.set_data(data)
-
 			Get.AUDIO_QUERY_FROM_PRESET:
 				data._parse_JSON(body)
 				audio_query_from_preset.set_data(
@@ -353,6 +418,28 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 					data["kana"]
 				)
 
+			Get.CANCELLABLE_SYNTHESIS:
+				_play_WAV_file(body)
+
+			Get.MORA_DATA:
+				data = _parse_JSON(body)
+				mora.set_data(data)
+
+			Get.MORA_LENGTH:
+				data = _parse_JSON(body)
+				mora_length.set_data(data)
+
+			Get.MORA_PITCH:
+				data = _parse_JSON(body)
+				mora_pitch.set_data(data)
+
+			Get.MULTI_SYNTHESIS:
+				_play_WAV_file(body)
+
+			Get.SCORE:
+				data._parse_JSON(body)
+				score.set_data(data)
+
 			Get.SING_FRAME_AUDIO_QUERY:
 				data._parse_JSON(body)
 				frame_audio_query.set_data(
@@ -364,9 +451,13 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 					data["outputStereo"]
 				)
 
-			Get.SCORE:
-				data._parse_JSON(body)
-				score.set_data(data)
+			Get.SING_FRAME_F0:
+				data = _parse_JSON(body)
+				sing_frame_f0.set_data(data)
+
+			Get.SING_FRAME_VOLUME:
+				data = _parse_JSON(body)
+				sing_frame_volume.set_data(data)
 
 	else:
 		if print_response == true:
@@ -374,17 +465,7 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 		data = _parse_JSON(body)
 		http_validation_error.set_data(data)
 
-
-## Opens the portal to the default browser if listening to the host and port.
-func open_portal() -> void:
-	var error: int = OS.shell_open(url)
-	if print_stat == true:
-		if error == OK:
-			print("Opened portal on browser.\n")
-		else:
-			print("Cannot open portal. Check host and port.\n")
-
-
+#region Other Functions
 ## Opens the docs to the default browser if listening to the host and port.
 func open_docs() -> void:
 	var error: int = OS.shell_open(url+"/docs".format(url))
@@ -398,8 +479,7 @@ func open_docs() -> void:
 ## Plays the WAV file from speech synthesis via post_synthesis.
 ## [param wav_data] the packed array of bytes which will be read as WAV.
 func _play_WAV_file(wav_data: PackedByteArray) -> void:
-	# TODO: Add params like sampling_rate and load them from either @export vars or Speakers.gd
-	var sample_rate: float = 24000.0
+	var sample_rate: float = stream_sample_rate
 
 	var stream = AudioStreamWAV.new()
 	stream.data = wav_data
@@ -524,3 +604,4 @@ func _get_response(id: int) -> String:
 		510: status = "RESPONSE_NOT_EXTENDED"
 		511: status = "RESPONSE_NETWORK_AUTH_REQUIRED"
 	return status
+#endregion
