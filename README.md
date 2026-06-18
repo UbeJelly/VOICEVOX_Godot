@@ -186,6 +186,14 @@ While here are the rest of functions for more configurations.
 ## Other VOICEVOX API Calls
 - `post_connect_waves(waves: PackedStringArray)` - merge multiple WAV data encoded with base64 into one.
 	- `waves` - are the multiple WAV data encoded with base64.
+- `post_validate_kana(text: String)` - checks whether the text follows *AquesTalk* wind transcription. If you do not follow this, error would occur.
+- `post_initialize_speaker(speaker_id: int, skip_reinit: bool = false)` - initialize the specified style. Other APIs can be used without running, but the initial runtime may take some time.
+	- `speaker_id` - is the id of the speaker that will talk.
+	- `skip_reinit` - to skip reinitializing styles that have already been initialized.
+- `is_initialized_speaker(speaker_id: int)` - returns whether the specified style has been initialized.
+- `get_supported_devices()` - get a list of supported devices.
+- `get_presets()` - get the preset settings used by the engine.
+- `add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float)` - add a new preset.
 
 ## Other functions
 - `text_to_speech_from_preset(text: String, preset_id: int)` - same as `text_to_speech` but uses a defined preset instead.

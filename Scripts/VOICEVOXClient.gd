@@ -1,26 +1,33 @@
 class_name VOICEVOXClient extends HTTPRequest
 
 #region Variables
-
 enum Get {
 	ACCENT_PHRASES,
+	ADD_PRESET,
 	AUDIO_QUERY,
 	AUDIO_QUERY_FROM_PRESET,
 	CANCELLABLE_SYNTHESIS,
 	CONNECT_WAVES,
 	FRAME_SYNTHESIS,
+	INITIALIZE_SPEAKER,
+	IS_INITIALIZED_SPEAKER,
 	MORA_DATA,
 	MORA_LENGTH,
 	MORA_PITCH,
 	MORPHABLE_TARGETS,
 	MULTI_SYNTHESIS,
+	PARSE_KANA_BAD_REQUEST,
+	PRESET,
+	PRESETS,
 	SING_FRAME_AUDIO_QUERY,
 	SING_FRAME_F0,
 	SING_FRAME_VOLUME,
 	SCORE,
 	SPEAKERS,
+	SUPPORTED_DEVICES,
 	SYNTHESIS,
 	SYNTHESIS_MORPHING,
+	VALIDATE_KANA,
 }
 
 const listens: Dictionary = { "host": "127.0.0.1", "port": "50021" }
@@ -53,26 +60,31 @@ var query: int = 0
 
 ## INFO: Schemas - the data containers for POST and GET requests
 @onready var accent_phrases := AccentPhrases.new()
+@onready var added_preset := AddPreset.new()
 @onready var audio_query := AudioQuery.new()
 @onready var audio_query_from_preset := AudioQueryFromPreset.new()
 @onready var cancellable_synthesis := CancellableSynthesis.new()
 @onready var frame_audio_query := FrameAudioQuery.new()
 @onready var http_validation_error := HTTPValidationError.new()
+@onready var initialized_speaker := InitializedSpeaker.new()
 @onready var mora := Mora.new()
 @onready var mora_length := MoraLength.new()
 @onready var mora_pitch := MoraPitch.new()
 @onready var morphable_targets := MorphableTargets.new()
 @onready var multi_synthesis := MultiSynthesis.new()
+@onready var parse_kana_bad_request := ParseKanaBadRequest.new()
+@onready var presets := Presets.new()
 @onready var score := Score.new()
 @onready var sing_frame_f0 := SingFrameF0.new()
 @onready var sing_frame_volume := SingFrameVolume.new()
 @onready var speakers := Speakers.new()
+@onready var supported_devices_info := SupportedDevicesInfo.new()
 @onready var synthesis := Synthesis.new()
 @onready var synthesis_morphing := SynthesisMorphing.new()
+@onready var validate_kana := ValidateKana.new()
 
 ## INFO: Sub nodes
 @onready var audio_stream_player := $AudioStreamPlayer
-
 #endregion
 
 func _ready() -> void:
@@ -430,6 +442,116 @@ func post_connect_waves(waves: PackedStringArray) -> void:
 		else:
 			print("❌ post_connect_waves() failed.")
 
+
+## Checks whether the text follows AquesTalk wind transcription. If you do not follow this, error would occur.
+## [param text] is the text to validate kana from.
+func post_validate_kana(text: String) -> void:
+	query = Get.VALIDATE_KANA
+	var params: Dictionary = { "text": text.uri_encode() }
+	var endpoint: String = url+"/validate_kana?text={text}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_validate_kana() run successfully.")
+		else:
+			print("❌ post_validate_kana() failed.")
+
+
+## Initialize the specified style. Other APIs can be used without running, but the initial runtime may take some time.
+## [param speaker_id] is the id of the speaker that will talk.
+## [param skip_reinit] to skip reinitializing styles that have already been initialized.
+func post_initialize_speaker(speaker_id: int, skip_reinit: bool = false) -> void:
+	query = Get.INITIALIZE_SPEAKER
+	var params: Dictionary = { "speaker": speaker_id, "skip_reinit": skip_reinit }
+	var endpoint: String = url+"/initialize_speaker?speaker={speaker}&skip_reinit={skip_reinit}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_initialize_speaker() run successfully.")
+		else:
+			print("❌ post_initialize_speaker() failed.")
+
+
+## Returns whether the specified style has been initialized.
+## [param speaker_id] is the id of the speaker that will talk.
+func is_initialized_speaker(speaker_id: int) -> void:
+	query = Get.IS_INITIALIZED_SPEAKER
+	var params: Dictionary = { "speaker": speaker_id }
+	var endpoint: String = url+"/is_initialized_speaker?speaker={speaker}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ is_initialized_speaker() run successfully.")
+		else:
+			print("❌ is_initialized_speaker() failed.")
+
+
+## Get a list of supported devices.
+func get_supported_devices() -> void:
+	query = Get.SUPPORTED_DEVICES
+	var endpoint: String = url+"/supported_devices"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_supported_devices() run successfully.")
+		else:
+			print("❌ get_supported_devices() failed.")
+
+
+## Get the preset settings used by the engine.
+func get_presets() -> void:
+	query = Get.PRESETS
+	var endpoint: String = url+"/presets"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_presets() run successfully.")
+		else:
+			print("❌ get_presets() failed.")
+
+
+## Add a new preset.
+## [param id] is the id of the new preset.
+## [param _name] is the name of the new preset. 
+## [param speaker_uuid] is the UUID of the speaker.
+## [param style_id] is the style id of the new preset.
+## [param _speed_scale] is the speed how fast the Speaker talks.
+## [param _pitch_scale] is the perceived highness or lowness of a sound.
+## [param _intonation_scale] is the rise and fall of voice in speech.
+## [param _volume_scale] is the perceived loudness or intensity of a sound.
+## [param _pre_phoneme_length] is the silent duration before the audio (e.g., the 'k' in 'ka').
+## [param _post_phoneme_length] is the silent duration after the audio.
+## [param pause_length] 
+## [param pause_length_scale] 
+func add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float) -> void:
+	query = Get.ADD_PRESET
+	var endpoint: String = url+"/presets"
+	var request_body: String = JSON.stringify({
+		"id": id,
+		"name": _name,
+		"speaker_uuid": speaker_uuid,
+		"style_id": style_id,
+		"speedScale": _speed_scale,
+		"pitchScale": _pitch_scale,
+		"intonationScale": _intonation_scale,
+		"volumeScale": _volume_scale,
+		"prePhonemeLength": _pre_phoneme_length,
+		"postPhonemeLength": _post_phoneme_length,
+		"pauseLength": pause_length,
+		"pauseLengthScale": pause_length_scale
+	})
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ add_preset() run successfully.")
+		else:
+			print("❌ add_preset() failed.")
 #endregion
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -474,8 +596,12 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 				data = _parse_JSON(body)
 				accent_phrases.set_data(data)
 
+			Get.ADD_PRESET:
+				data = _parse_JSON(body)
+				added_preset.set_data(data)
+
 			Get.AUDIO_QUERY_FROM_PRESET:
-				data._parse_JSON(body)
+				data = _parse_JSON(body)
 				audio_query_from_preset.set_data(
 					data["accent_phrases"],
 					data["speedScale"],
@@ -500,6 +626,10 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.FRAME_SYNTHESIS:
 				_play_WAV_file(body)
 
+			Get.IS_INITIALIZED_SPEAKER:
+				data = _parse_JSON(body)
+				initialized_speaker.set_data(data)
+
 			Get.MORA_DATA:
 				data = _parse_JSON(body)
 				mora.set_data(data)
@@ -519,12 +649,16 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.MULTI_SYNTHESIS:
 				_play_WAV_file(body)
 
+			Get.PRESETS:
+				data = _parse_JSON(body)
+				presets.set_data(data)
+
 			Get.SCORE:
-				data._parse_JSON(body)
+				data = _parse_JSON(body)
 				score.set_data(data)
 
 			Get.SING_FRAME_AUDIO_QUERY:
-				data._parse_JSON(body)
+				data = _parse_JSON(body)
 				frame_audio_query.set_data(
 					data["f0"],
 					data["volume"],
@@ -542,14 +676,30 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 				data = _parse_JSON(body)
 				sing_frame_volume.set_data(data)
 
+			Get.SUPPORTED_DEVICES:
+				data = _parse_JSON(body)
+				supported_devices_info.set_data(data)
+
 			Get.SYNTHESIS_MORPHING:
 				_play_WAV_file(body)
 
+			Get.VALIDATE_KANA:
+				data = _parse_JSON(body)
+				validate_kana.set_data(data)
+
 	else:
 		if print_response == true:
-			print("❌ Validation Error! HTTP request response code: %s\n" % _get_response(response_code))
-		data = _parse_JSON(body)
-		http_validation_error.set_data(data)
+			print("❌ HTTP request response code: %s\n" % _get_response(response_code))
+		if response_code == HTTPClient.RESPONSE_NO_CONTENT:
+			if query == Get.INITIALIZE_SPEAKER:
+				print("Initialized speaker. No content to receive.")
+		if response_code == HTTPClient.RESPONSE_BAD_REQUEST:			
+			if query == Get.VALIDATE_KANA:
+				data = _parse_JSON(body)
+				parse_kana_bad_request.set_data(data)
+		elif response_code == HTTPClient.RESPONSE_UNPROCESSABLE_ENTITY:	
+			data = _parse_JSON(body)
+			http_validation_error.set_data(data)
 
 #region Other Functions
 ## Opens the docs to the default browser if listening to the host and port.
