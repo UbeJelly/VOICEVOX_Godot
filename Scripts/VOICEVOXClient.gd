@@ -7,9 +7,12 @@ enum Get {
 	AUDIO_QUERY,
 	AUDIO_QUERY_FROM_PRESET,
 	CANCELLABLE_SYNTHESIS,
+	CONNECT_WAVES,
+	FRAME_SYNTHESIS,
 	MORA_DATA,
 	MORA_LENGTH,
 	MORA_PITCH,
+	MORPHABLE_TARGETS,
 	MULTI_SYNTHESIS,
 	SING_FRAME_AUDIO_QUERY,
 	SING_FRAME_F0,
@@ -17,6 +20,7 @@ enum Get {
 	SCORE,
 	SPEAKERS,
 	SYNTHESIS,
+	SYNTHESIS_MORPHING,
 }
 
 const listens: Dictionary = { "host": "127.0.0.1", "port": "50021" }
@@ -57,12 +61,14 @@ var query: int = 0
 @onready var mora := Mora.new()
 @onready var mora_length := MoraLength.new()
 @onready var mora_pitch := MoraPitch.new()
+@onready var morphable_targets := MorphableTargets.new()
 @onready var multi_synthesis := MultiSynthesis.new()
 @onready var score := Score.new()
 @onready var sing_frame_f0 := SingFrameF0.new()
 @onready var sing_frame_volume := SingFrameVolume.new()
 @onready var speakers := Speakers.new()
 @onready var synthesis := Synthesis.new()
+@onready var synthesis_morphing := SynthesisMorphing.new()
 
 ## INFO: Sub nodes
 @onready var audio_stream_player := $AudioStreamPlayer
@@ -209,7 +215,7 @@ func post_accent_phrases(text: String, speaker_id: int) -> void:
 			print("❌ post_accent_phrases() failed.")
 
 
-## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Can be cancelled.
+## Synthesizes the data from cancelable audio query. Receives a PackedByteArray after request_completed.
 ## [param audio_query_data] is the data to synthesize speech with.
 func post_cancellable_synthesis(audio_query_data: Dictionary) -> void:
 	query = Get.CANCELLABLE_SYNTHESIS
@@ -223,6 +229,22 @@ func post_cancellable_synthesis(audio_query_data: Dictionary) -> void:
 			print("✓ post_cancellable_synthesis() run successfully.")
 		else:
 			print("❌ post_cancellable_synthesis() failed.")
+
+
+## Synthesizes the data from frame audio query. Receives a PackedByteArray after request_completed.
+## [param frame_audio_query_data] is a Dictionary of FrameAudioQuery to synthesize speech from.
+func post_frame_synthesis(frame_audio_query_data: Dictionary) -> void:
+	query = Get.FRAME_SYNTHESIS
+	var params: Dictionary = { "speaker": speaker }
+	var endpoint: String = url+"/frame_synthesis?speaker={speaker}".format(params)
+	var request_body: String = JSON.stringify(frame_audio_query_data)
+
+	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_frame_synthesis() run successfully.")
+		else:
+			print("❌ post_frame_synthesis() failed.")
 
 
 ## Get phoneme length and pitch from accent phrases.
@@ -274,6 +296,21 @@ func post_mora_pitch(speaker_id: int, accent_phrases_data: Array) -> void:
 			print("✓ post_mora_pitch() run successfully.")
 		else:
 			print("❌ post_mora_pitch() failed.")
+
+
+## Checks if characters in the engine can morph for a specified style.
+## [param base_style_ids] is an array of base style ids that can morph.
+func post_morphable_targets(base_style_ids: PackedInt32Array) -> void:
+	query = Get.MORPHABLE_TARGETS
+	var endpoint: String = url+"/morphable_targets"
+	var request_body: String = JSON.stringify(base_style_ids)
+
+	var error: int = request(endpoint, [headers["header"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_morphable_targets() run successfully.")
+		else:
+			print("❌ post_morphable_targets() failed.")
 
 
 ## Synthesizes the data from audio query. Receives a PackedByteArray after request_completed.
@@ -349,6 +386,25 @@ func post_sing_frame_volume(speaker_id: int, score_data: Dictionary, frame_audio
 			print("❌ post_sing_frame_volume() failed.")
 
 
+## Synthesize voice in two specified styles and obtain a voice morphed at a specified ratio.
+## [param base_speaker] is the id of the speaker that will be morphed.
+## [param target_speaker] is the id of another speaker to morph from.
+## [param morph_rate] is the rate of morph from 0 to 1.
+## [param audio_query_data] is the data to synthesize speech with.
+func post_synthesis_morphing(base_speaker: int, target_speaker: int, morph_rate: float, audio_query_data: Dictionary) -> void:
+	query = Get.SYNTHESIS_MORPHING
+	var params: Dictionary = { "base_speaker ": base_speaker, "target_speaker": target_speaker, "morph_rate": morph_rate }
+	var endpoint: String = url+"/synthesis_morphing?base_speaker={base_speaker}&target_speaker={target_speaker}&morph_rate={morph_rate}".format(params)
+	var request_body: String = JSON.stringify(audio_query_data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_synthesis_morphing() run successfully.")
+		else:
+			print("❌ post_synthesis_morphing() failed.")
+
+
 ## Opens the portal to the default browser if listening to the host and port.
 func open_portal() -> void:
 	var error: int = OS.shell_open(url)
@@ -357,6 +413,23 @@ func open_portal() -> void:
 			print("Opened portal on browser.\n")
 		else:
 			print("Cannot open portal. Check host and port.\n")
+#endregion
+
+#region Other VOICEVOX API Calls
+## Merge multiple WAV data encoded with base64 into one.
+## [param waves] are the multiple WAV data encoded with base64.
+func post_connect_waves(waves: PackedStringArray) -> void:
+	query = Get.CONNECT_WAVES
+	var endpoint: String = url+"/connect_waves"
+	var request_body: String = JSON.stringify(waves)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ post_connect_waves() run successfully.")
+		else:
+			print("❌ post_connect_waves() failed.")
+
 #endregion
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -421,6 +494,12 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.CANCELLABLE_SYNTHESIS:
 				_play_WAV_file(body)
 
+			Get.CONNECT_WAVES:
+				_play_WAV_file(body)
+
+			Get.FRAME_SYNTHESIS:
+				_play_WAV_file(body)
+
 			Get.MORA_DATA:
 				data = _parse_JSON(body)
 				mora.set_data(data)
@@ -432,6 +511,10 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.MORA_PITCH:
 				data = _parse_JSON(body)
 				mora_pitch.set_data(data)
+
+			Get.MORPHABLE_TARGETS:
+				data = _parse_JSON(body)
+				morphable_targets.set_data(data)
 
 			Get.MULTI_SYNTHESIS:
 				_play_WAV_file(body)
@@ -458,6 +541,9 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.SING_FRAME_VOLUME:
 				data = _parse_JSON(body)
 				sing_frame_volume.set_data(data)
+
+			Get.SYNTHESIS_MORPHING:
+				_play_WAV_file(body)
 
 	else:
 		if print_response == true:

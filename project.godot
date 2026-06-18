@@ -12,6 +12,7 @@ config_version=5
 
 config/name="VOICEVOX_GODOT"
 config/description="Godot API wrapper for VOICEVOX"
+config/tags=PackedStringArray("priority", "wip")
 run/main_scene="uid://3vwrt8keodqd"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"

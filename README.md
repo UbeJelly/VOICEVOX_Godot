@@ -2,19 +2,20 @@
 This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine).
 
 ## Table of Contents
-| Section                                | Description                                                       |
-|----------------------------------------|-------------------------------------------------------------------|
-| [Usage](#usage)                        | Shows the gist of how it works and its examples to use.           |
-| [Setup](#setup)                        | A guide on setting up the TTS engine and running it locally.      |
-| [Standalone setup](#standalone-setup)  | Setup base on a VOICEVOX app release.                             |
-| [Docker setup](#docker-setup)          | Setup base on running through Docker.                             |
-| [Structure](#structure)                | The structure of the entire project.                              |
-| [Methods](#methods)                    | The functions available from `VOICEVOXClient` main scene.         |
-| [Main functions](#main-functions)      | The methods that abstract their purpose, e.g. *text-to-speech*.   |
-| [API calls](#api-calls)                | Requests data and stores them to an object, e.g. `Speakers`.      |
-| [Other functions](#other-functions)    | The other available functions to use.                             |
-| [Features](#features)                  | Some stuff to make the project interesting or easier to maintain. |
-| [License](#license)                    | The license of this project.                                      |
+| Section                                					| Description                                                       |
+|-----------------------------------------------------------|-------------------------------------------------------------------|
+| [Usage](#usage)                        					| Shows the gist of how it works and its examples to use.           |
+| [Setup](#setup)                        					| A guide on setting up the TTS engine and running it locally.      |
+| [Standalone setup](#standalone-setup)  					| Setup base on a VOICEVOX app release.                             |
+| [Docker setup](#docker-setup)          					| Setup base on running through Docker.                             |
+| [Structure](#structure)                					| The structure of the entire project.                              |
+| [Methods](#methods)                    					| The functions available from `VOICEVOXClient` main scene.         |
+| [Main functions](#main-functions)      					| The methods that abstract their purpose, e.g. *text-to-speech*.   |
+| [VOICEVOX API calls](#voicevox-api-calls)              	| API calls that request data and stores them, e.g. `Speakers`.     |
+| [Other VOICEVOX API calls](#other-voicevox-api-calls)		| Other API calls available on VOICEVOX.      |
+| [Other functions](#other-functions)    					| The other available functions to use.                             |
+| [Features](#features)                  					| Some stuff to make the project interesting or easier to maintain. |
+| [License](#license)                    					| The license of this project.                                      |
 
 ## Usage
 > [!NOTE]  
@@ -145,7 +146,7 @@ These are the main functions of the main scene `VOICEVOXClient`.
   - `volume` - is the entire volume when the audio is played.
 - `_play_WAV_file(wav_data: PackedByteArray)` - plays the WAV file from synthesized speech by `post_synthesis()`.
 
-## API calls
+## VOICEVOX API calls
 The actual functions that handles requests and retrieves data. The data are stored to respective objects under the `Resources` directory, e.g. `post_audio_query()` → `AudioQuery.gd`.  
 For more info check `Schemas` section in http://127.0.0.1:50021/docs.
 
@@ -161,18 +162,30 @@ While here are the rest of functions for more configurations.
 - `post_accent_phrases(text: String, speaker_id: int)` - extracts the accents of phrases from the text.
 - `post_audio_query_from_preset(text: String, preset_id: int)` - creates a speech synthesis query using presets. `Presets` must not be empty. Use `post_add_preset()` to add a preset, while `get_presets()` to get an array of presets.
   - `preset_id` - is the id of a preset to use.
-- `post_cancellable_synthesis(audio_query_data: Dictionary)` - synthesizes the data from audio query. Receives a PackedByteArray after request_completed. Can be cancelled.
+- `post_cancellable_synthesis(audio_query_data: Dictionary)` - synthesizes the data from audio query. Receives a `PackedByteArray` after `request_completed`. Can be cancelled.
+- `post_frame_synthesis(frame_audio_query_data: Dictionary)` - synthesizes the data from frame audio query. Receives a `PackedByteArray` after `request_completed`.
 - `post_mora_data(speaker_id: int, accent_phrases_data: Array)` - get phoneme length and pitch from accent phrases.
 	- `accent_phrases_data` - is the returned Array from `AccentPhrases`.
 - `post_mora_length(speaker_id: int, accent_phrases_data: Array)` - get phoneme lengths from accent phrases.
 - `post_mora_pitch(speaker_id: int, accent_phrases_data: Array)` - get phoneme pitch from accent phrases.
-- `post_multi_synthesis(multi_audio_query_data: Array)` - synthesizes the data from multiple audio query. Receives a PackedByteArray after request_completed.
+- `post_morphable_targets(base_style_ids: PackedInt32Array)` - checks if characters in the engine can morph for a specified style.
+	- `base_style_ids` - is an array of base style ids that can morph.
+- `post_multi_synthesis(multi_audio_query_data: Array)` - synthesizes the data from multiple audio query. Receives a `PackedByteArray` after `request_completed`.
 	- `multi_audio_query_data` - is an Array of multiple AudioQuery to synthesize speech from.
 - `post_sing_frame_audio_query(speaker_id: int, score_data: Dictionary)` - obtains the initial values ​​for the query used for singing voice synthesis.
 	- `score_data` - is the returned data from `Score`.
 - `post_sing_frame_f0(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary)` - get the basic frequency for each frame from queries for sheet music and singing voice synthesis.
 	- `frame_audio_query_data` - is the returned data from `FrameAudioQuery`.
 - `post_sing_frame_volume(speaker_id: int, score_data: Dictionary, frame_audio_query_data: Dictionary)` - get per-frame volume from queries for sheet music and vocal synthesis.
+- `post_synthesis_morphing(base_speaker: int, target_speaker: int, morph_rate: float, audio_query_data: Dictionary)` - synthesize voice in two specified styles and obtain a voice morphed at a specified ratio.
+	- `base_speaker` - is the id of the speaker that will be morphed.
+	- `target_speaker` - is the id of another speaker to morph from.
+	- `morph_rate` - is the rate of morph from 0 to 1.
+	- `audio_query_data` - is the data to synthesize speech with.
+
+## Other VOICEVOX API Calls
+- `post_connect_waves(waves: PackedStringArray)` - merge multiple WAV data encoded with base64 into one.
+	- `waves` - are the multiple WAV data encoded with base64.
 
 ## Other functions
 - `text_to_speech_from_preset(text: String, preset_id: int)` - same as `text_to_speech` but uses a defined preset instead.
