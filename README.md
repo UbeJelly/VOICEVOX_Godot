@@ -2,20 +2,22 @@
 This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine).
 
 ## Table of Contents
-| Section                                					| Description                                                       |
+| Section													| Description														|
 |-----------------------------------------------------------|-------------------------------------------------------------------|
-| [Usage](#usage)                        					| Shows the gist of how it works and its examples to use.           |
-| [Setup](#setup)                        					| A guide on setting up the TTS engine and running it locally.      |
-| [Standalone setup](#standalone-setup)  					| Setup base on a VOICEVOX app release.                             |
-| [Docker setup](#docker-setup)          					| Setup base on running through Docker.                             |
-| [Structure](#structure)                					| The structure of the entire project.                              |
-| [Methods](#methods)                    					| The functions available from `VOICEVOXClient` main scene.         |
-| [Main functions](#main-functions)      					| The methods that abstract their purpose, e.g. *text-to-speech*.   |
-| [VOICEVOX API calls](#voicevox-api-calls)              	| API calls that request data and stores them, e.g. `Speakers`.     |
-| [Other VOICEVOX API calls](#other-voicevox-api-calls)		| Other API calls available on VOICEVOX.      |
-| [Other functions](#other-functions)    					| The other available functions to use.                             |
-| [Features](#features)                  					| Some stuff to make the project interesting or easier to maintain. |
-| [License](#license)                    					| The license of this project.                                      |
+| [Usage](#usage)											| Shows the gist of how it works and its examples to use.			|
+| [Setup](#setup)											| A guide on setting up the TTS engine and running it locally.		|
+| [Standalone setup](#standalone-setup)						| Setup base on a VOICEVOX app release.								|
+| [Docker setup](#docker-setup)								| Setup base on running through Docker.								|
+| [Structure](#structure)									| The structure of the entire project.								|
+| [Methods](#methods)										| The functions available from `VOICEVOXClient` main scene.			|
+| [Main functions](#main-functions)							| The methods that abstract their purpose, e.g. *text-to-speech*.	|
+| [VOICEVOX API calls](#voicevox-api-calls)					| API calls that request data and stores them, e.g. `Speakers`.		|
+| [Other VOICEVOX API calls](#other-voicevox-api-calls)		| Other API calls available on VOICEVOX.							|
+| [VOICEVOX User Dictionary](#voicevox-user-dictionary)		| Functions to handle user dictionary in VOICEVOX.					|
+| [VOICEVOX Engine Settings](#voicevox-engine-settings)		| Functions to handle engine settings (CORS) in VOICEVOX.			|
+| [Other functions](#other-functions)						| The other available functions to use.								|
+| [Features](#features)										| Some stuff to make the project interesting or easier to maintain.	|
+| [License](#license)										| The license of this project.										|
 
 ## Usage
 > [!NOTE]  
@@ -203,6 +205,25 @@ While here are the rest of functions for more configurations.
 - `get_version()` - get the engine version.
 - `get_core_versions()` - get a list of available core versions.
 - `get_engine_manifest()` - get the engine manifesto.
+
+## VOICEVOX User Dictionary
+- `get_user_dict()` - returns a list of words registered in the user dictionary. The surface form of words returns normalized forms.
+- `add_user_dict_word(surface: String, pronunciation: String, accent_type: int, word_type: String = "", priority: int = 0)` - add words to the user dictionary.
+	- `surface` - is the surface form of words.
+	- `pronunciation` - is the pronunciation of words (katakana).
+	- `accent_type` - refers to the place where the sound drops.
+	- `word_type` - available values: `PROPER_NOUN`, `COMMON_NOUN`, `VERB`, `ADJECTIVE`, `SUFFIX`
+	- `priority` - is a range of integers from 0 to 10). The higher the number, the higher the priority. It is recommended to specify values from 1 to 9.
+- `update_user_dict_word(word_uuid: String, surface: String, pronunciation: String, accent_type: int, word_type: String = "", priority: int = 0)` - update words in the user dictionary.
+	- `word_uuid` - is the UUID of the word to update.
+- `delete_user_dict_word(word_uuid: String)` - delete words in the user dictionary.
+- `import_user_dict(override: bool, import_dict_data: Dictionary)` - import other user dictionaries.
+
+## VOICEVOX Engine Settings
+- `open_settings()` - opens the engine settings, http://127.0.0.1:50021/setting, to the default browser if listening to the host and port.
+- `update_settings(cors_policy_mode: String, allow_origin: String)` - updates the engine settings.
+	- `cors_policy_mode` - either `all` or `localapps`. `localapps` limits resource sharing policies between origins to those related to app://. and localhost, while `all` allows everything. Please use this service with an understanding of the risks. Other origins can be added using the `allow_origin` option.
+	- `allow_origin` - specify the allowed origins. By dividing spaces into sections, you can specify multiple items.
 
 ## Other functions
 - `text_to_speech_from_preset(text: String, preset_id: int)` - same as `text_to_speech` but uses a defined preset instead.

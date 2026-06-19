@@ -4,14 +4,17 @@ class_name VOICEVOXClient extends HTTPRequest
 enum Get {
 	ACCENT_PHRASES,
 	ADD_PRESET,
+	ADD_USER_DICT,
 	AUDIO_QUERY,
 	AUDIO_QUERY_FROM_PRESET,
 	CANCELLABLE_SYNTHESIS,
 	CORE_VERSIONS,
 	CONNECT_WAVES,
 	DELETE_PRESET,
+	DELETE_USER_DICT,
 	ENGINE_MANIFEST,
 	FRAME_SYNTHESIS,
+	IMPORT_USER_DICT,
 	INITIALIZE_SPEAKER,
 	IS_INITIALIZED_SPEAKER,
 	MORA_DATA,
@@ -34,6 +37,9 @@ enum Get {
 	SYNTHESIS,
 	SYNTHESIS_MORPHING,
 	UPDATE_PRESET,
+	UPDATE_SETTINGS,
+	UPDATE_USER_DICT,
+	USER_DICT,
 	VALIDATE_KANA,
 	VERSION,
 }
@@ -69,6 +75,7 @@ var query: int = 0
 ## INFO: Schemas - the data containers for POST and GET requests
 @onready var accent_phrases := AccentPhrases.new()
 @onready var added_preset := AddPreset.new()
+@onready var added_user_dict := AddUserDict.new()
 @onready var audio_query := AudioQuery.new()
 @onready var audio_query_from_preset := AudioQueryFromPreset.new()
 @onready var cancellable_synthesis := CancellableSynthesis.new()
@@ -95,6 +102,7 @@ var query: int = 0
 @onready var synthesis := Synthesis.new()
 @onready var synthesis_morphing := SynthesisMorphing.new()
 @onready var updated_preset := UpdatePreset.new()
+@onready var user_dict := UserDict.new()
 @onready var validate_kana := ValidateKana.new()
 @onready var version := Version.new()
 
@@ -566,7 +574,7 @@ func add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _sp
 
 
 ## Update existing presets.
-## [param id] is the id of the new preset.
+## [param id] is the id of the preset to update.
 ## [param _name] is the name of the new preset. 
 ## [param speaker_uuid] is the UUID of the speaker.
 ## [param style_id] is the style id of the new preset.
@@ -703,6 +711,117 @@ func get_engine_manifest() -> void:
 			print("❌ get_engine_manifest() failed.")
 #endregion
 
+#region VOICEVOX User Dictionary
+## Returns a list of words registered in the user dictionary. The surface form of words returns normalized forms.
+func get_user_dict() -> void:
+	query = Get.USER_DICT
+	var endpoint: String = url+"/user_dict"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_user_dict() run successfully.")
+		else:
+			print("❌ get_user_dict() failed.")
+
+
+## Add words to the user dictionary.
+## [param surface] is the surface form of words.
+## [param pronunciation] is the pronunciation of words (katakana).
+## [param accent_type] refers to the place where the sound drops.
+## [param word_type] available values: PROPER_NOUN, COMMON_NOUN, VERB, ADJECTIVE, SUFFIX
+## [param priority] is a range of integers from 0 to 10). The higher the number, the higher the priority. It is recommended to specify values from 1 to 9.
+func add_user_dict_word(surface: String, pronunciation: String, accent_type: int, word_type: String = "", priority: int = 0) -> void:
+	query = Get.ADD_USER_DICT
+	var params: Dictionary = { "surface": surface, "pronunciation": pronunciation, "accent_type": accent_type, "word_type": word_type, "priority": priority }	
+	var endpoint: String = url+"/user_dict_word?surface={surface}&pronunciation={pronunciation}&accent_type={accent_type}&word_type={word_type}&priority={priority}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ add_user_dict_word() run successfully.")
+		else:
+			print("❌ add_user_dict_word() failed.")
+
+
+## Update words in the user dictionary.
+## [param word_uuid] is the UUID of the word to update.
+## [param surface] is the surface form of words.
+## [param pronunciation] is the pronunciation of words (katakana).
+## [param accent_type] refers to the place where the sound drops.
+## [param word_type] available values: PROPER_NOUN, COMMON_NOUN, VERB, ADJECTIVE, SUFFIX
+## [param priority] is a range of integers from 0 to 10). The higher the number, the higher the priority. It is recommended to specify values from 1 to 9.
+func update_user_dict_word(word_uuid: String, surface: String, pronunciation: String, accent_type: int, word_type: String = "", priority: int = 0) -> void:
+	query = Get.UPDATE_USER_DICT
+	var params: Dictionary = { "surface": surface, "pronunciation": pronunciation, "accent_type": accent_type, "word_type": word_type, "priority": priority, "word_uuid": word_uuid }	
+	var endpoint: String = url+"/user_dict_word/{word_uuid}?surface={surface}&pronunciation={pronunciation}&accent_type={accent_type}&word_type={word_type}&priority={priority}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_PUT)
+	if print_stat == true:
+		if error == OK:
+			print("✓ update_user_dict_word() run successfully.")
+		else:
+			print("❌ update_user_dict_word() failed.")
+
+
+## Delete words in the user dictionary.
+## [param word_uuid] is the UUID of the word to delete.
+func delete_user_dict_word(word_uuid: String) -> void:
+	query = Get.DELETE_USER_DICT
+	var params: Dictionary = { "word_uuid": word_uuid }	
+	var endpoint: String = url+"/user_dict_word/{word_uuid}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_DELETE)
+	if print_stat == true:
+		if error == OK:
+			print("✓ delete_user_dict_word() run successfully.")
+		else:
+			print("❌ delete_user_dict_word() failed.")
+
+
+## Import other user dictionaries.
+## [param override] refers to whether overwrite user entries if there are duplicates.
+func import_user_dict(override: bool, import_dict_data: Dictionary) -> void:
+	query = Get.IMPORT_USER_DICT
+	var params: Dictionary = { "override": override }	
+	var endpoint: String = url+"/import_user_dict?override={override}".format(params)
+	var request_body: String = JSON.stringify(import_dict_data)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ import_user_dict() run successfully.")
+		else:
+			print("❌ import_user_dict() failed.")
+#endregion
+
+#region VOICEVOX Engine Settings
+## Opens the engine settings, '/setting', to the default browser if listening to the host and port.
+func open_settings() -> void:
+	var error: int = OS.shell_open(url+"/setting".format(url))
+	if print_stat == true:
+		if error == OK:
+			print("Opened engine settings on browser.\n")
+		else:
+			print("Cannot engine settings. Check host and port.\n")
+
+
+## Updates the engine settings.
+## [param cors_policy_mode] either 'all' or 'localapps'. 'localapps' limits resource sharing policies between origins to those related to app://. and localhost, while 'all' allow everything. Please use this service with an understanding of the risks. Other origins can be added using the [param allow_origin] option.
+## [param allow_origin] specify the allowed origins. By dividing spaces into sections, you can specify multiple items.
+func update_settings(cors_policy_mode: String, allow_origin: String) -> void:
+	query = Get.UPDATE_SETTINGS
+	var endpoint: String = url+"/setting"
+	var request_body: String = JSON.stringify({ "cors_policy_mode": cors_policy_mode, "allow_origin": allow_origin })
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ update_settings() run successfully.")
+		else:
+			print("❌ update_settings() failed.")
+#endregion
+
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var data: Variant = null
 
@@ -748,6 +867,10 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.ADD_PRESET:
 				data = _parse_JSON(body)
 				added_preset.set_data(data)
+
+			Get.ADD_USER_DICT:
+				data = _parse_JSON(body)
+				added_user_dict.set_data(data)
 
 			Get.AUDIO_QUERY_FROM_PRESET:
 				data = _parse_JSON(body)
@@ -856,6 +979,10 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 				data = _parse_JSON(body)
 				updated_preset.set_data(data)
 
+			Get.USER_DICT:
+				data = _parse_JSON(body)
+				user_dict.set_data(data)
+
 			Get.VALIDATE_KANA:
 				data = _parse_JSON(body)
 				validate_kana.set_data(data)
@@ -869,10 +996,18 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			print("❌ HTTP request response code: %s\n" % _get_response(response_code))
 		if response_code == HTTPClient.RESPONSE_NO_CONTENT:
 			match query:
-				Get.INITIALIZE_SPEAKER:
-					print("Initialized speaker. No content to receive.")
 				Get.DELETE_PRESET:
 					print("Deleted preset. No content to receive.")
+				Get.DELETE_USER_DICT:
+					print("Deleted word in user dictionary. No content to receive.")
+				Get.IMPORT_USER_DICT:
+					print("Imported user dictionary. No content to receive.")
+				Get.INITIALIZE_SPEAKER:
+					print("Initialized speaker. No content to receive.")
+				Get.UPDATE_SETTINGS:
+					print("Updated engine settings (CORS Policy Mode & Allow Origin). No content to receive.")
+				Get.UPDATE_USER_DICT:
+					print("Updated word in user dictionary. No content to receive.")
 		if response_code == HTTPClient.RESPONSE_BAD_REQUEST:			
 			if query == Get.VALIDATE_KANA:
 				data = _parse_JSON(body)
