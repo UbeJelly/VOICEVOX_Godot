@@ -4,8 +4,8 @@ This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/vo
 ## Table of Contents
 | Section													| Description														|
 |-----------------------------------------------------------|-------------------------------------------------------------------|
-| [Usage](#usage)											| Shows the gist of how it works and its examples to use.			|
 | [Setup](#setup)											| A guide on setting up the TTS engine and running it locally.		|
+| [Usage](#usage)											| Shows the gist of how it works and its examples to use.			|
 | [Standalone setup](#standalone-setup)						| Setup base on a VOICEVOX app release.								|
 | [Docker setup](#docker-setup)								| Setup base on running through Docker.								|
 | [Structure](#structure)									| The structure of the entire project.								|
@@ -18,6 +18,34 @@ This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/vo
 | [Other functions](#other-functions)						| The other available functions to use.								|
 | [Features](#features)										| Some stuff to make the project interesting or easier to maintain.	|
 | [License](#license)										| The license of this project.										|
+
+## Setup
+This is a guide to setup this API wrapper and the speech synthesis VOICEVOX.
+
+Firstly, here are the steps for using the `VOICEVOXClient` scripts and scenes.
+1. Make a new Godot 4 project.
+2. Copy the `Data` folder, `VOICEVOXClient.gd`, and `VOICEVOXClient.tscn` into the new project directory.
+3. Instance `VOICEVOXClient` and add it as a child of your main scene.
+
+After that you need a copy of VOICEVOX; either download it from [VOICEVOX releases](https://voicevox.hiroshiba.jp/), or clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) from its repository. You can also follow the steps below for standalone or docker setup.
+
+### Standalone setup
+The great thing for this setup is that you only have to launch the VOICEVOX app every time you need to. The downside is that it uses its GUI.
+
+1. Download from [VOICEVOX releases](https://voicevox.hiroshiba.jp/) based on your platform (e.g. Windows, Linux, etc.) or clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) from their repository.
+2. Run the executable program VOICEVOX.
+3. Check http://127.0.0.1:50021/docs in a browser. If it opens the documentation then it works and you can use it on Godot.
+
+### Docker setup
+The good thing for this setup is that its headless, i.e. no GUI involved. The downside is you have to run the engine and server through Docker.
+
+> [!NOTE]  
+> While this setup is done on terminal, it is possible to setup with Godot as well via `OS.execute()`.  
+> This is a headless setup; we will only use the TTS engine without their GUI.
+
+1. Git clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine): `git clone https://github.com/VOICEVOX/voicevox_engine.git`
+2. Run [Docker](https://www.docker.com/) image: `docker run --rm -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-latest`
+3. Check http://127.0.0.1:50021/docs in a browser. If it opens the documentation then it works and you can use it on Godot.
 
 ## Usage
 > [!NOTE]  
@@ -87,27 +115,6 @@ Output:
 ✓ HTTP request response code: RESPONSE_OK
 ```
 Note that there are no printed output in terminal when `post_synthesis()` has `request_completed` as the received data is only played via `_play_WAV_file(data)`.
-
-## Setup
-This is a guide to setup this API wrapper and the speech synthesis VOICEVOX.
-
-### Standalone setup
-The great thing for this setup is that you only have to launch the VOICEVOX app every time you need to. The downside is that it uses its GUI.
-
-1. Download from [VOICEVOX releases](https://voicevox.hiroshiba.jp/) based on your platform (e.g. Windows, Linux, etc.) or clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) from their repository.
-2. Run the executable program VOICEVOX.
-3. Check http://127.0.0.1:50021/docs in a browser. If it opens the documentation then it works and you can use it on Godot.
-
-### Docker setup
-The good thing for this setup is that its headless, i.e. no GUI involved. The downside is you have to run the engine and server through Docker.
-
-> [!NOTE]  
-> While this setup is done on terminal, it is possible to setup with Godot as well via `OS.execute()`.  
-> This is a headless setup; we will only use the TTS engine without their GUI.
-
-1. Git clone [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine): `git clone https://github.com/VOICEVOX/voicevox_engine.git`
-2. Run [Docker](https://www.docker.com/) image: `docker run --rm -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-latest`
-3. Check http://127.0.0.1:50021/docs in a browser. If it opens the documentation then it works and you can use it on Godot.
 
 ## Structure
 This is the structure of the entire project. This only shows the relevant directories and files for this API wrapper.
