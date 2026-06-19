@@ -194,6 +194,15 @@ While here are the rest of functions for more configurations.
 - `get_supported_devices()` - get a list of supported devices.
 - `get_presets()` - get the preset settings used by the engine.
 - `add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float)` - add a new preset.
+- `update_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float)` - update existing presets.
+- `delete_preset(id: int)` - delete existing presets.
+- `get_speaker_info(speaker_uuid: String, resource_format: String = "base64")` - returns information about the speaking character specified by UUID. Images and audio are returned in the format specified by the resource_format.
+	- `resource_format` - is the format of the resource. Available values: base64, url.
+- `get_singers()` - returns a list of singable characters.
+- `get_singer_info(speaker_uuid: String, resource_format: String = "base64")` - returns information about the singable character specified by UUID. Images and audio are returned in the format specified by the resource_format.
+- `get_version()` - get the engine version.
+- `get_core_versions()` - get a list of available core versions.
+- `get_engine_manifest()` - get the engine manifesto.
 
 ## Other functions
 - `text_to_speech_from_preset(text: String, preset_id: int)` - same as `text_to_speech` but uses a defined preset instead.

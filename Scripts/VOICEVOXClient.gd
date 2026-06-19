@@ -7,7 +7,10 @@ enum Get {
 	AUDIO_QUERY,
 	AUDIO_QUERY_FROM_PRESET,
 	CANCELLABLE_SYNTHESIS,
+	CORE_VERSIONS,
 	CONNECT_WAVES,
+	DELETE_PRESET,
+	ENGINE_MANIFEST,
 	FRAME_SYNTHESIS,
 	INITIALIZE_SPEAKER,
 	IS_INITIALIZED_SPEAKER,
@@ -19,15 +22,20 @@ enum Get {
 	PARSE_KANA_BAD_REQUEST,
 	PRESET,
 	PRESETS,
+	SCORE,
 	SING_FRAME_AUDIO_QUERY,
 	SING_FRAME_F0,
 	SING_FRAME_VOLUME,
-	SCORE,
+	SINGERS,
+	SINGER_INFO,
+	SPEAKER_INFO,
 	SPEAKERS,
 	SUPPORTED_DEVICES,
 	SYNTHESIS,
 	SYNTHESIS_MORPHING,
+	UPDATE_PRESET,
 	VALIDATE_KANA,
+	VERSION,
 }
 
 const listens: Dictionary = { "host": "127.0.0.1", "port": "50021" }
@@ -64,6 +72,8 @@ var query: int = 0
 @onready var audio_query := AudioQuery.new()
 @onready var audio_query_from_preset := AudioQueryFromPreset.new()
 @onready var cancellable_synthesis := CancellableSynthesis.new()
+@onready var core_versions := CoreVersions.new()
+@onready var engine_manifest := EngineManifest.new()
 @onready var frame_audio_query := FrameAudioQuery.new()
 @onready var http_validation_error := HTTPValidationError.new()
 @onready var initialized_speaker := InitializedSpeaker.new()
@@ -77,11 +87,16 @@ var query: int = 0
 @onready var score := Score.new()
 @onready var sing_frame_f0 := SingFrameF0.new()
 @onready var sing_frame_volume := SingFrameVolume.new()
+@onready var singers := Singers.new()
+@onready var singer_info := SingerInfo.new() 
+@onready var speaker_info := SpeakerInfo.new()
 @onready var speakers := Speakers.new()
 @onready var supported_devices_info := SupportedDevicesInfo.new()
 @onready var synthesis := Synthesis.new()
 @onready var synthesis_morphing := SynthesisMorphing.new()
+@onready var updated_preset := UpdatePreset.new()
 @onready var validate_kana := ValidateKana.new()
+@onready var version := Version.new()
 
 ## INFO: Sub nodes
 @onready var audio_stream_player := $AudioStreamPlayer
@@ -90,10 +105,6 @@ var query: int = 0
 func _ready() -> void:
 	set_speech_settings(3, 1.15, 0.05, 1.45, 2.0, 0.1, 0.1)
 	text_to_speech("Hello world! This is voice box gee doh. It's nice to meet you!")
-
-	## TODO: Make and use both post_add_preset() and get_presets() first to see if it works.
-	## Then proceed on using post_audio_query_from_preset() via text_to_speech_from_preset()
-	#text_to_speech_from_preset("Hello world! I'm one of the presets!", 12)
 
 #region Main Client Functions
 ## The Text-to-Speech function. It posts an [param audio_query] and synthesizes its data with [param synthesis()] function.
@@ -526,11 +537,11 @@ func get_presets() -> void:
 ## [param _volume_scale] is the perceived loudness or intensity of a sound.
 ## [param _pre_phoneme_length] is the silent duration before the audio (e.g., the 'k' in 'ka').
 ## [param _post_phoneme_length] is the silent duration after the audio.
-## [param pause_length] 
-## [param pause_length_scale] 
+## [param pause_length]
+## [param pause_length_scale]
 func add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float) -> void:
 	query = Get.ADD_PRESET
-	var endpoint: String = url+"/presets"
+	var endpoint: String = url+"/add_preset"
 	var request_body: String = JSON.stringify({
 		"id": id,
 		"name": _name,
@@ -552,6 +563,144 @@ func add_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _sp
 			print("✓ add_preset() run successfully.")
 		else:
 			print("❌ add_preset() failed.")
+
+
+## Update existing presets.
+## [param id] is the id of the new preset.
+## [param _name] is the name of the new preset. 
+## [param speaker_uuid] is the UUID of the speaker.
+## [param style_id] is the style id of the new preset.
+## [param _speed_scale] is the speed how fast the Speaker talks.
+## [param _pitch_scale] is the perceived highness or lowness of a sound.
+## [param _intonation_scale] is the rise and fall of voice in speech.
+## [param _volume_scale] is the perceived loudness or intensity of a sound.
+## [param _pre_phoneme_length] is the silent duration before the audio (e.g., the 'k' in 'ka').
+## [param _post_phoneme_length] is the silent duration after the audio.
+## [param pause_length]
+## [param pause_length_scale]
+func update_preset(id: int, _name: String, speaker_uuid: String, style_id: int, _speed_scale: float, _pitch_scale: float, _intonation_scale: float, _volume_scale: float, _pre_phoneme_length: float, _post_phoneme_length: float, pause_length: float, pause_length_scale: float) -> void:
+	query = Get.UPDATE_PRESET
+	var endpoint: String = url+"/update_preset"
+	var request_body: String = JSON.stringify({
+		"id": id,
+		"name": _name,
+		"speaker_uuid": speaker_uuid,
+		"style_id": style_id,
+		"speedScale": _speed_scale,
+		"pitchScale": _pitch_scale,
+		"intonationScale": _intonation_scale,
+		"volumeScale": _volume_scale,
+		"prePhonemeLength": _pre_phoneme_length,
+		"postPhonemeLength": _post_phoneme_length,
+		"pauseLength": pause_length,
+		"pauseLengthScale": pause_length_scale
+	})
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST, request_body)
+	if print_stat == true:
+		if error == OK:
+			print("✓ update_preset() run successfully.")
+		else:
+			print("❌ update_preset() failed.")
+
+
+## Delete existing presets.
+## [param id] is the id of the preset to delete.
+func delete_preset(id: int) -> void:
+	query = Get.DELETE_PRESET
+	var params: Dictionary = { "id": id }	
+	var endpoint: String = url+"/delete_preset?id={id}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_POST)
+	if print_stat == true:
+		if error == OK:
+			print("✓ delete_preset() run successfully.")
+		else:
+			print("❌ delete_preset() failed.")
+
+
+## Returns information about the speaking character specified by UUID. Images and audio are returned in the format specified by the resource_format.
+## [param speaker_uuid] is the UUID of the speaker.
+## [param resource_format] is the format of the resource. Available values: base64, url.
+func get_speaker_info(speaker_uuid: String, resource_format: String = "base64") -> void:
+	query = Get.SPEAKER_INFO
+	var params: Dictionary = { "speaker_uuid": speaker_uuid, "resource_format": resource_format }
+	var endpoint: String = url+"/speaker_info?speaker_uuid={speaker_uuid}&resource_format={resource_format}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_speaker_info() run successfully.")
+		else:
+			print("❌ get_speaker_info() failed.")
+
+
+## Returns a list of singable characters.
+func get_singers() -> void:
+	query = Get.SINGERS
+	var endpoint: String = url+"/singers"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_singers() run successfully.")
+		else:
+			print("❌ get_singers() failed.")
+
+
+## Returns information about the singable character specified by UUID. Images and audio are returned in the format specified by the resource_format.
+## [param speaker_uuid] is the UUID of the speaker.
+## [param resource_format] is the format of the resource. Available values: base64, url.
+func get_singer_info(speaker_uuid: String, resource_format: String = "base64") -> void:
+	query = Get.SINGER_INFO
+	var params: Dictionary = { "speaker_uuid": speaker_uuid, "resource_format": resource_format }
+	var endpoint: String = url+"/singer_info?speaker_uuid={speaker_uuid}&resource_format={resource_format}".format(params)
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_singers_info() run successfully.")
+		else:
+			print("❌ get_singers_info() failed.")
+
+
+## Get the engine version.
+func get_version() -> void:
+	query = Get.VERSION
+	var endpoint: String = url+"/version"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_version() run successfully.")
+		else:
+			print("❌ get_version() failed.")
+
+
+## Get a list of available core versions.
+func get_core_versions() -> void:
+	query = Get.CORE_VERSIONS
+	var endpoint: String = url+"/core_versions"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_core_versions() run successfully.")
+		else:
+			print("❌ get_core_versions() failed.")
+
+
+## Get the engine manifesto.
+func get_engine_manifest() -> void:
+	query = Get.ENGINE_MANIFEST
+	var endpoint: String = url+"/engine_manifest"
+
+	var error: int = request(endpoint, [headers["accept"]], HTTPClient.METHOD_GET)
+	if print_stat == true:
+		if error == OK:
+			print("✓ get_engine_manifest() run successfully.")
+		else:
+			print("❌ get_engine_manifest() failed.")
 #endregion
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -620,8 +769,16 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.CANCELLABLE_SYNTHESIS:
 				_play_WAV_file(body)
 
+			Get.CORE_VERSIONS:
+				data = _parse_JSON(body)
+				core_versions.set_data(data)
+
 			Get.CONNECT_WAVES:
 				_play_WAV_file(body)
+
+			Get.ENGINE_MANIFEST:
+				data = _parse_JSON(body)
+				engine_manifest.set_data(data)
 
 			Get.FRAME_SYNTHESIS:
 				_play_WAV_file(body)
@@ -676,6 +833,18 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 				data = _parse_JSON(body)
 				sing_frame_volume.set_data(data)
 
+			Get.SINGERS:
+				data = _parse_JSON(body)
+				singers.set_data(data)
+
+			Get.SINGER_INFO:
+				data = _parse_JSON(body)
+				singer_info.set_data(data)
+
+			Get.SPEAKER_INFO:
+				data = _parse_JSON(body)
+				speaker_info.set_data(data)
+
 			Get.SUPPORTED_DEVICES:
 				data = _parse_JSON(body)
 				supported_devices_info.set_data(data)
@@ -683,16 +852,27 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			Get.SYNTHESIS_MORPHING:
 				_play_WAV_file(body)
 
+			Get.UPDATE_PRESET:
+				data = _parse_JSON(body)
+				updated_preset.set_data(data)
+
 			Get.VALIDATE_KANA:
 				data = _parse_JSON(body)
 				validate_kana.set_data(data)
+
+			Get.VERSION:
+				data = _parse_JSON(body)
+				version.set_data(data)
 
 	else:
 		if print_response == true:
 			print("❌ HTTP request response code: %s\n" % _get_response(response_code))
 		if response_code == HTTPClient.RESPONSE_NO_CONTENT:
-			if query == Get.INITIALIZE_SPEAKER:
-				print("Initialized speaker. No content to receive.")
+			match query:
+				Get.INITIALIZE_SPEAKER:
+					print("Initialized speaker. No content to receive.")
+				Get.DELETE_PRESET:
+					print("Deleted preset. No content to receive.")
 		if response_code == HTTPClient.RESPONSE_BAD_REQUEST:			
 			if query == Get.VALIDATE_KANA:
 				data = _parse_JSON(body)
