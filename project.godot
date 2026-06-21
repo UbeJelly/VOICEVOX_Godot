@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="VOICEVOX_GODOT"
+config/name="VOICEVOX_Godot"
 config/description="Godot API wrapper for VOICEVOX"
 config/tags=PackedStringArray("priority", "wip")
 run/main_scene="uid://3vwrt8keodqd"

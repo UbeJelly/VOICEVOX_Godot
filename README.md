@@ -6,6 +6,7 @@ This is a Godot API wrapper for [VOICEVOX Engine](https://github.com/VOICEVOX/vo
 |-----------------------------------------------------------|-------------------------------------------------------------------|
 | [Setup](#setup)											| A guide on setting up the TTS engine and running it locally.		|
 | [Usage](#usage)											| Shows the gist of how it works and its examples to use.			|
+| [Examples](#examples)										| Some examples on how to use it.									|
 | [Standalone setup](#standalone-setup)						| Setup base on a VOICEVOX app release.								|
 | [Docker setup](#docker-setup)								| Setup base on running through Docker.								|
 | [Structure](#structure)									| The structure of the entire project.								|
@@ -115,6 +116,98 @@ Output:
 ✓ HTTP request response code: RESPONSE_OK
 ```
 Note that there are no printed output in terminal when `post_synthesis()` has `request_completed` as the received data is only played via `_play_WAV_file(data)`.
+
+### Examples
+> [!NOTE]  
+> For this example, if you're following this guide and have copied the files to your Godot project, then kindly go to `VOICEVOXClient.gd` or simply click the `VOICEVOXClient.tscn` main scene and disable the `Print Data`, `Print Result`, and `Print Response` in the properties tab i.e. `Inspector`.  
+>  
+> By default, every requests prints the following properties to the terminal, but by turning them off we'll only print specifically when we need to.
+
+#### Creating an object to hold data
+Just as we can instance and add a VOICEVOXClient as a child to our main scene, we can also do the same to our data containers in `res://Data`.
+
+For this example we'll create a new AudioQuery object for Zundamon.
+
+```gdscript
+extends Node
+
+var voicevox = preload("res://VOICEVOXClient.tscn").instantiate()
+
+func _ready() -> void:
+	add_child(voicevox)
+
+	var dialogue := "Hello, I am Zundamon! This is an example on using voice box!"
+	var speaker := 3
+	voicevox.post_audio_query(dialogue, speaker)
+	await voicevox.request_completed
+
+	# Here we are making a new AudioQuery to store the data we get from request and use it later
+	var zundamon_query := AudioQuery.new()
+	zundamon_query.data = voicevox.audio_query.get_data() # Set the received data
+	zundamon_query.name = "Zundamon"
+	add_child(zundamon_query, true)
+	print("\nZundamon's query:\n"+JSON.stringify(zundamon_query.data, "\t")+"\n")
+
+	# This is where we synthesize the AudioQuery into speech
+	voicevox.post_synthesis(zundamon_query.get_data())
+```
+
+After instancing and adding VOICEVOXClient as a child, we used `post_audio_query()` to set an `AudioQuery` request.
+
+Then, we made a new variable `zundamon_query` as our own new `AudioQuery` to hold the data from our request.
+
+We just set `zundamon_query` node's `name` as "Zundamon", while set the `add_child()`'s 2nd parameter to true so that the name "Zundamon" is applied in *SceneTree* when it is added as a child.
+
+```bash
+Node                  - main scene
+  ├─ VOICEVOXClient   - VOICEVOX wrapper instance
+  └─ Zundamon         - the new AudioQuery
+```
+
+Then we get the actual `AudioQuery` data with `audio_query.get_data()` and set its value to "Zundamon": `zundamon_query.data = voicevox.audio_query.get_data()`.
+
+Finally in this example we just accessed `Zundamon.data` and printed them on terminal.
+
+```JSON
+✓ post_audio_query() run successfully.
+
+Zundamon's query:
+{
+	"accent_phrases": [
+		{
+			"accent": 1.0,
+			"is_interrogative": false,
+			"moras": [
+				{
+					"consonant": "h",
+					"consonant_length": 0.0840203389525414,
+					"pitch": 5.84833765029907,
+					"text": "ハ",
+					"vowel": "a",
+					"vowel_length": 0.0927483066916466
+				},
+				//...
+			],
+		//...
+		},
+	],
+	"intonationScale": 1.0,
+	"kana": "ハ'ロオ、ア'イ/ア'ム/ズ'ンダモン、ディ'ス/イ'ズ/ア'ン/エグザ'ンプル/オ'ン/ユ'ウジング/ボ'イス/ボ'ッ_クス",
+	"outputSamplingRate": 24000.0,
+	"outputStereo": false,
+	"pauseLength": null,
+	"pauseLengthScale": 1.0,
+	"pitchScale": 0.0,
+	"postPhonemeLength": 0.1,
+	"prePhonemeLength": 0.1,
+	"speedScale": 1.0,
+	"volumeScale": 2.0
+}
+
+✓ post_synthesis() run successfully.
+```
+
+For a quick test you can also check out [VOICEVOX_Godot_Test](https://github.com/UbeJelly/VOICEVOX_Godot_Test).
 
 ## Structure
 This is the structure of the entire project. This only shows the relevant directories and files for this API wrapper.

@@ -110,10 +110,6 @@ var query: int = 0
 @onready var audio_stream_player := $AudioStreamPlayer
 #endregion
 
-func _ready() -> void:
-	set_speech_settings(3, 1.15, 0.05, 1.45, 2.0, 0.1, 0.1)
-	text_to_speech("Hello world! This is voice box gee doh. It's nice to meet you!")
-
 #region Main Client Functions
 ## The Text-to-Speech function. It posts an [param audio_query] and synthesizes its data with [param synthesis()] function.
 ## [param text] is the text to synthesize to speech.
